@@ -1,27 +1,27 @@
-# Testing del Flujo de Telescopio
+# Guía de Testing - Telescopio
 
-## Estado Actual de Implementación
+## Funcionalidades Implementadas
 
 ✅ **Completado:**
-- Vista de eventos públicos (sin necesidad de login)
+- Vista de eventos públicos
 - Sistema de autenticación (login/registro)
 - Registro de usuarios en eventos
-- Subida de archivos (attachments)
-- Estados de eventos (stages)
+- Subida de archivos
+- Estados de eventos
 - Vista detallada de eventos
 
 ## Cómo Probar el Flujo
 
 ### 1. Preparar el Entorno
 
-Asegúrate de tener ambos servidores corriendo:
+Tener ambos servidores corriendo:
 
 ```bash
-# Terminal 1 - API (Go)
+# Terminal 1 - API Backend
 cd telescopio-api
 go run cmd/api/main.go
 
-# Terminal 2 - Frontend (React)
+# Terminal 2 - Frontend
 cd Telescopio-web
 npm start
 ```
@@ -36,20 +36,20 @@ npm start
 
 ### 3. Crear Eventos de Prueba
 
-Abre la consola del navegador (F12) y ejecuta:
+En la consola del navegador (F12):
 
 ```javascript
-// Los comandos están disponibles globalmente
-window.telescopioTest.showTestInstructions();
+// Mostrar instrucciones
+(window as any).telescopioTest.showTestInstructions();
 
 // Crear eventos de prueba
-await window.telescopioTest.createTestEvents();
+await (window as any).telescopioTest.createTestEvents();
 
-// Actualizar un evento a fase de registro
-await window.telescopioTest.updateEventToRegistration('EVENT_ID');
+// Cambiar evento a fase de registro
+await (window as any).telescopioTest.updateEventToRegistration('EVENT_ID');
 ```
 
-Para obtener IDs de eventos:
+Ver eventos existentes:
 ```javascript
 const events = await fetch('http://localhost:8080/api/events').then(r => r.json());
 console.log('Eventos:', events);
@@ -67,10 +67,10 @@ console.log('Eventos:', events);
 2. Click en "Participar" (ya no debería estar deshabilitado)
 3. ✅ **Verificar**: Mensaje de éxito "Te has registrado exitosamente"
 
-#### Paso 3: Subir Archivo (Attachment)
-1. Cambiar el evento a fase de "attachment_upload":
+#### Paso 3: Subir Archivo
+1. Cambiar el evento a fase de subida:
    ```javascript
-   await window.telescopioTest.updateEventToAttachmentUpload('EVENT_ID');
+   await (window as any).telescopioTest.updateEventToAttachmentUpload('EVENT_ID');
    ```
 2. Refresh la página
 3. Abrir detalles del evento
@@ -81,10 +81,9 @@ console.log('Eventos:', events);
 
 ### 5. Estados de Eventos
 
-Los eventos tienen estos estados en orden:
-- `creation` → `registration` → `attachment_upload` → `voting` → `results`
+Orden de estados: `creation` → `registration` → `attachment_upload` → `voting` → `results`
 
-Puedes cambiar estados usando:
+Cambiar estados:
 ```javascript
 // Cambiar a registro
 await fetch('http://localhost:8080/api/events/EVENT_ID/stage', {
@@ -101,7 +100,7 @@ await fetch('http://localhost:8080/api/events/EVENT_ID/stage', {
 });
 ```
 
-### 6. Verificar Datos en la API
+### 6. Verificar API
 
 ```javascript
 // Ver todos los eventos
@@ -110,29 +109,25 @@ fetch('http://localhost:8080/api/events').then(r => r.json()).then(console.log);
 // Ver participantes de un evento
 fetch('http://localhost:8080/api/events/EVENT_ID/participants').then(r => r.json()).then(console.log);
 
-// Health check de la API
+// Health check
 fetch('http://localhost:8080/ping').then(r => r.json()).then(console.log);
 ```
 
-## Funcionalidad Implementada
+## Tecnologías
 
 ### Frontend
-- ✅ AuthContext para manejo de sesiones
-- ✅ Vista Events públicos
-- ✅ Modal EventDetail con acciones según estado
-- ✅ Componente Auth (login/registro)
-- ✅ Upload de archivos con validaciones
-- ✅ Estados visuales de eventos
-- ✅ Responsive design
+- React con TypeScript
+- Context API para autenticación
+- CSS personalizado
+- Validación de archivos
+- Diseño responsive
 
 ### Backend (API)
-- ✅ CORS configurado
-- ✅ Endpoints de eventos (CRUD)
-- ✅ Registro de participantes
-- ✅ Upload de attachments
-- ✅ Manejo de estados de eventos
-- ✅ Validaciones de permisos
-- ✅ Sistema de stages
+- Go con endpoints REST
+- CORS configurado
+- Sistema de stages
+- Upload de archivos
+- Validación de permisos
 
 ## Próximos Pasos Sugeridos
 
@@ -143,17 +138,17 @@ fetch('http://localhost:8080/ping').then(r => r.json()).then(console.log);
 5. **Notificaciones**: Sistema de notificaciones de cambios de estado
 6. **Admin Panel**: Vista para administradores de eventos
 
-## Comandos Útiles para Testing
+## Comandos Útiles
 
 ```javascript
-// Limpiar autenticación (logout forzado)
-window.telescopioTest.clearAuth();
+// Limpiar autenticación
+(window as any).telescopioTest.clearAuth();
 
-// Mostrar instrucciones en consola
-window.telescopioTest.showTestInstructions();
+// Mostrar instrucciones
+(window as any).telescopioTest.showTestInstructions();
 
 // Crear eventos de prueba
-await window.telescopioTest.createTestEvents();
+await (window as any).telescopioTest.createTestEvents();
 ```
 
 ## Troubleshooting

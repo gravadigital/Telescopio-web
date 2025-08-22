@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { JSX, useState } from 'react';
 import './App.css';
 import Events from './components/Events';
 import Auth from './components/Auth';
@@ -9,13 +9,16 @@ if (process.env.NODE_ENV === 'development') {
   import('./utils/testData.js');
 }
 
-function AppContent() {
-  const [currentView, setCurrentView] = useState('home');
-  const [showAuthModal, setShowAuthModal] = useState(false);
+type ViewType = 'home' | 'events';
+type AuthAction = 'login' | 'register' | 'logout';
+
+function AppContent(): JSX.Element {
+  const [currentView, setCurrentView] = useState<ViewType>('home');
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   
   const { user, logout, isAuthenticated } = useAuth();
 
-  const handleAuthAction = (action) => {
+  const handleAuthAction = (action: AuthAction): void => {
     if (action === 'logout') {
       logout();
     } else {
@@ -23,7 +26,7 @@ function AppContent() {
     }
   };
 
-  const renderContent = () => {
+  const renderContent = (): JSX.Element => {
     switch(currentView) {
       case 'events':
         return <Events />;
@@ -80,7 +83,7 @@ function AppContent() {
             
             {isAuthenticated ? (
               <>
-                <span className="user-greeting">Hola, {user.name}</span>
+                <span className="user-greeting">Hola, {user?.name}</span>
                 <button onClick={() => handleAuthAction('logout')} className="nav-link nav-button">Cerrar Sesión</button>
               </>
             ) : (
@@ -102,7 +105,7 @@ function AppContent() {
   );
 }
 
-function App() {
+function App(): JSX.Element {
   return (
     <AuthProvider>
       <AppContent />
