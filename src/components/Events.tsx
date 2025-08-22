@@ -33,17 +33,17 @@ const Events: React.FC<EventsProps> = () => {
         id: '2',
         title: "Hackathon Telescopio",
         description: "Desarrolla la próxima gran aplicación tecnológica en 48 horas intensivas.",
-        stage: "voting",
+        stage: "registration",
         date: "2025-10-01",
         location: "Universidad Tecnológica",
-        participant_ids: ['user_123', 'user_456']
+        participant_ids: []
       },
       {
         id: '3',
         title: "Concurso de Arte Digital",
         description: "Crea obras de arte digital únicas usando las últimas tecnologías.",
-        stage: "completed",
-        date: "2025-08-01",
+        stage: "attachment_upload",
+        date: "2025-08-15",
         location: "Galería Virtual Online",
         participant_ids: ['user_789']
       },
@@ -51,10 +51,19 @@ const Events: React.FC<EventsProps> = () => {
         id: '4',
         title: "Competencia de Innovación",
         description: "Presenta tu idea innovadora que puede cambiar el mundo.",
-        stage: "attachment_upload",
-        date: "2025-11-15",
+        stage: "voting",
+        date: "2025-07-10",
         location: "Centro de Innovación",
-        participant_ids: ['user_101']
+        participant_ids: ['user_101', 'user_202', 'user_303']
+      },
+      {
+        id: '5',
+        title: "Festival de Música Digital",
+        description: "Crea la mejor pista musical electrónica del año.",
+        stage: "completed",
+        date: "2025-06-20",
+        location: "Sala de Conciertos Virtual",
+        participant_ids: ['user_404', 'user_505', 'user_606', 'user_707']
       }
     ];
 

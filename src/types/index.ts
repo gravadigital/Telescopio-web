@@ -28,6 +28,7 @@ export interface AuthContextType {
   login: (userData: User) => void;
   logout: () => void;
   updateUser: (updatedData: Partial<User>) => void;
+  joinEvent: (eventId: string) => void;
   isAuthenticated: boolean;
   loading: boolean;
 }

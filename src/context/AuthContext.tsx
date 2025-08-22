@@ -47,11 +47,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('telescopio_user', JSON.stringify(updatedUser));
   };
 
+  const joinEvent = (eventId: string): void => {
+    if (!user) return;
+    
+    const updatedJoinedEvents = [...user.joinedEventIDs];
+    if (!updatedJoinedEvents.includes(eventId)) {
+      updatedJoinedEvents.push(eventId);
+    }
+    
+    const updatedUser = { ...user, joinedEventIDs: updatedJoinedEvents };
+    setUser(updatedUser);
+    localStorage.setItem('telescopio_user', JSON.stringify(updatedUser));
+  };
+
   const value: AuthContextType = {
     user,
     login,
     logout,
     updateUser,
+    joinEvent,
     isAuthenticated: !!user,
     loading
   };
