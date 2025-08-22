@@ -9,12 +9,21 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
   const [success, setSuccess] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
+  const [isUserRegistered, setIsUserRegistered] = useState<boolean>(false);
   
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, joinEvent } = useAuth();
 
-  const isRegistered = user && event.participant_ids && event.participant_ids.includes(user.id);
-  const canRegister = event.stage === 'registration' && isAuthenticated && !isRegistered;
-  const canUploadAttachment = event.stage === 'attachment_upload' && isRegistered;
+  // Verificar si el usuario está registrado al cargar el componente
+  React.useEffect(() => {
+    if (user) {
+      // Verificar si el usuario tiene este evento en su lista de eventos registrados
+      const userIsRegistered = user.joinedEventIDs.includes(event.id);
+      setIsUserRegistered(userIsRegistered);
+    }
+  }, [user, event.id]);
+
+  const canRegister = event.stage === 'registration' && isAuthenticated && !isUserRegistered;
+  const canUploadAttachment = event.stage === 'attachment_upload' && isUserRegistered;
 
   const handleRegister = async (): Promise<void> => {
     if (!isAuthenticated || !user) {
@@ -29,6 +38,8 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
     // Simular registro exitoso (sin llamada real a API)
     setTimeout(() => {
       setSuccess('¡Te has registrado exitosamente en el evento!');
+      setIsUserRegistered(true); // Actualizar el estado local
+      joinEvent(event.id); // Agregar evento a la lista del usuario
       setLoading(false);
       onRegistered && onRegistered();
     }, 1000);
@@ -167,7 +178,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
               </div>
             )}
 
-            {isRegistered && event.stage === 'registration' && (
+            {isUserRegistered && event.stage === 'registration' && (
               <div className="registered-info">
                 <p>✅ Ya estás registrado en este evento</p>
                 <p>Espera a que se abra la fase de subida de archivos.</p>
@@ -213,14 +224,14 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
               </div>
             )}
 
-            {isRegistered && event.stage === 'voting' && (
+            {isUserRegistered && event.stage === 'voting' && (
               <div className="voting-info">
                 <p>🗳️ El evento está en fase de votación</p>
                 <p>Pronto podrás votar por las participaciones.</p>
               </div>
             )}
 
-            {isRegistered && event.stage === 'completed' && (
+            {isUserRegistered && event.stage === 'completed' && (
               <div className="results-info">
                 <p>🏆 Los resultados ya están disponibles</p>
                 <button className="secondary-btn">Ver Resultados</button>
