@@ -1,32 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, FormEvent, ChangeEvent } from 'react';
 import './Auth.css';
 import { useAuth } from '../context/AuthContext';
+import { AuthProps, FormData, User } from '../types';
 
-function Auth({ onClose }) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
+const Auth: React.FC<AuthProps> = ({ onClose }) => {
+  const [isLogin, setIsLogin] = useState<boolean>(true);
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: ''
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
   const { login } = useAuth();
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // Validaciones básicas
       if (!formData.email) {
         throw new Error('El email es requerido');
       }
@@ -35,8 +35,7 @@ function Auth({ onClose }) {
         throw new Error('El nombre es requerido para registro');
       }
 
-      // Simular autenticación (en una app real, esto se haría contra la API)
-      const userData = {
+      const userData: User = {
         id: `user_${Date.now()}`,
         name: formData.name || formData.email.split('@')[0],
         email: formData.email,
@@ -45,16 +44,21 @@ function Auth({ onClose }) {
         createdEventIDs: []
       };
 
-      // En una implementación real, aquí harías la llamada a la API
       // Por ahora simularemos el login exitoso
       login(userData);
       
       onClose && onClose();
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSwitchMode = (): void => {
+    setIsLogin(!isLogin);
+    setError('');
+    setFormData({ name: '', email: '' });
   };
 
   return (
@@ -115,11 +119,7 @@ function Auth({ onClose }) {
             <button 
               type="button"
               className="switch-btn"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
-                setFormData({ name: '', email: '' });
-              }}
+              onClick={handleSwitchMode}
             >
               {isLogin ? 'Regístrate' : 'Inicia sesión'}
             </button>
@@ -128,6 +128,6 @@ function Auth({ onClose }) {
       </div>
     </div>
   );
-}
+};
 
 export default Auth;
