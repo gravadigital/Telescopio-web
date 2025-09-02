@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType, AuthProviderProps } from '../types';
+import { UserService } from '../services/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -29,9 +30,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = (userData: User): void => {
-    setUser(userData);
-    localStorage.setItem('telescopio_user', JSON.stringify(userData));
+  const login = async (email: string): Promise<void> => {
+    try {
+      setLoading(true);
+      const userData = await UserService.authenticateUser(email);
+      setUser(userData);
+      localStorage.setItem('telescopio_user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Error during login:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = (): void => {

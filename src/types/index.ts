@@ -25,7 +25,7 @@ export interface Event {
 
 export interface AuthContextType {
   user: User | null;
-  login: (userData: User) => void;
+  login: (email: string) => Promise<void>;
   logout: () => void;
   updateUser: (updatedData: Partial<User>) => void;
   joinEvent: (eventId: string) => void;

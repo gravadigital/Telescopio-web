@@ -1,7 +1,7 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 import './Auth.css';
 import { useAuth } from '../context/AuthContext';
-import { AuthProps, FormData, User } from '../types';
+import { AuthProps, FormData } from '../types';
 
 const Auth: React.FC<AuthProps> = ({ onClose }) => {
   const [isLogin, setIsLogin] = useState<boolean>(true);
@@ -35,17 +35,8 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
         throw new Error('El nombre es requerido para registro');
       }
 
-      const userData: User = {
-        id: `user_${Date.now()}`,
-        name: formData.name || formData.email.split('@')[0],
-        email: formData.email,
-        role: 'participant',
-        joinedEventIDs: [],
-        createdEventIDs: []
-      };
-
-      // Por ahora simularemos el login exitoso
-      login(userData);
+      // Usar el servicio de autenticación
+      await login(formData.email);
       
       onClose && onClose();
     } catch (err) {

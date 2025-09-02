@@ -3,10 +3,12 @@ import './Events.css';
 import EventDetail from './EventDetail';
 import { useAuth } from '../context/AuthContext';
 import { Event, EventsProps } from '../types';
+import { EventService } from '../services/api';
 
 const Events: React.FC<EventsProps> = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const { isAuthenticated } = useAuth();
@@ -15,75 +17,82 @@ const Events: React.FC<EventsProps> = () => {
     fetchEvents();
   }, []);
 
-  const fetchEvents = (): void => {
+  const fetchEvents = async (): Promise<void> => {
     setLoading(true);
+    setError('');
     
-    // Datos hardcodeados para demo inicial
-    const mockEvents: Event[] = [
-      {
-        id: '1',
-        title: "Evento de Fotografía 2025",
-        description: "Concurso de fotografía digital. Muestra tu mejor trabajo fotográfico y compite con otros artistas.",
-        stage: "registration",
-        date: "2025-09-15",
-        location: "Centro Cultural de la Ciudad",
-        participant_ids: []
-      },
-      {
-        id: '2',
-        title: "Hackathon Telescopio",
-        description: "Desarrolla la próxima gran aplicación tecnológica en 48 horas intensivas.",
-        stage: "registration",
-        date: "2025-10-01",
-        location: "Universidad Tecnológica",
-        participant_ids: []
-      },
-      {
-        id: '3',
-        title: "Concurso de Arte Digital",
-        description: "Crea obras de arte digital únicas usando las últimas tecnologías.",
-        stage: "attachment_upload",
-        date: "2025-08-15",
-        location: "Galería Virtual Online",
-        participant_ids: ['user_789']
-      },
-      {
-        id: '4',
-        title: "Competencia de Innovación",
-        description: "Presenta tu idea innovadora que puede cambiar el mundo.",
-        stage: "voting",
-        date: "2025-07-10",
-        location: "Centro de Innovación",
-        participant_ids: ['user_101', 'user_202', 'user_303']
-      },
-      {
-        id: '5',
-        title: "Festival de Música Digital",
-        description: "Crea la mejor pista musical electrónica del año.",
-        stage: "completed",
-        date: "2025-06-20",
-        location: "Sala de Conciertos Virtual",
-        participant_ids: ['user_404', 'user_505', 'user_606', 'user_707']
-      }
-    ];
+    try {
+      const fetchedEvents = await EventService.getAllEvents();
+      setEvents(fetchedEvents);
+    } catch (err) {
+      console.error('Error fetching events:', err);
+      setError('Error al cargar los eventos. Usando datos de demostración.');
+      
+      // Fallback a datos hardcodeados si la API no está disponible
+      const mockEvents: Event[] = [
+        {
+          id: '1',
+          title: "Evento de Fotografía 2025",
+          description: "Concurso de fotografía digital. Muestra tu mejor trabajo fotográfico y compite con otros artistas.",
+          stage: "registration",
+          date: "2025-09-15",
+          location: "Centro Cultural de la Ciudad",
+          participant_ids: []
+        },
+        {
+          id: '2',
+          title: "Hackathon Telescopio",
+          description: "Desarrolla la próxima gran aplicación tecnológica en 48 horas intensivas.",
+          stage: "registration",
+          date: "2025-10-01",
+          location: "Universidad Tecnológica",
+          participant_ids: []
+        },
+        {
+          id: '3',
+          title: "Concurso de Arte Digital",
+          description: "Crea obras de arte digital únicas usando las últimas tecnologías.",
+          stage: "attachment_upload",
+          date: "2025-08-15",
+          location: "Galería Virtual Online",
+          participant_ids: ['user_789']
+        },
+        {
+          id: '4',
+          title: "Competencia de Innovación",
+          description: "Presenta tu idea innovadora que puede cambiar el mundo.",
+          stage: "voting",
+          date: "2025-07-10",
+          location: "Centro de Innovación",
+          participant_ids: ['user_101', 'user_202', 'user_303']
+        },
+        {
+          id: '5',
+          title: "Festival de Música Digital",
+          description: "Crea la mejor pista musical electrónica del año.",
+          stage: "completed",
+          date: "2025-06-20",
+          location: "Sala de Conciertos Virtual",
+          participant_ids: ['user_404', 'user_505', 'user_606', 'user_707']
+        }
+      ];
 
-    // Simular delay de carga
-    setTimeout(() => {
       setEvents(mockEvents);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
-  const handleRegisterEvent = (eventId: string): void => {
+  const handleRegisterEvent = async (eventId: string): Promise<void> => {
     const event = events.find(e => e.id === eventId);
     if (event) {
       setSelectedEvent(event);
     }
   };
 
-  const handleEventRegistered = (): void => {
-    // Refrescar la lista de eventos (por ahora no hace nada)
-    console.log('Evento registrado exitosamente');
+  const handleEventRegistered = async (): Promise<void> => {
+    // Refrescar la lista de eventos después del registro
+    await fetchEvents();
   };
 
   const getStageDisplayName = (stage: Event['stage']): string => {
