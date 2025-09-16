@@ -22,7 +22,6 @@ export const EventService = {
     try {
       const response = await apiRequest<{ data: any[] }>(API_CONFIG.ENDPOINTS.EVENTS);
       
-      // Transformar la respuesta del backend al formato esperado por el frontend
       const events = response.data?.map((eventData: any) => ({
         id: eventData.id,
         title: eventData.name, // Backend usa 'name', frontend espera 'title'
@@ -30,9 +29,11 @@ export const EventService = {
         date: eventData.start_date, // Backend usa 'start_date', frontend espera 'date'
         location: 'Observatorio Virtual', // Valor por defecto
         organizer: 'Sistema Telescopio', // Valor por defecto
-        status: eventData.stage === 'registration' ? 'active' : 
-                eventData.stage === 'voting' ? 'active' :
-                eventData.stage === 'results' ? 'completed' : 'active',
+          status: (eventData.stage === 'registration' || eventData.stage === 'voting' 
+           ? 'active' 
+           : eventData.stage === 'results' 
+           ? 'completed' 
+           : 'active') as "active" | "completed" | "cancelled",
         stage: eventData.stage,
         participantIDs: [], // Por ahora vacío
         voteCount: { yes: 0, maybe: 0, no: 0 }, // Por ahora vacío
