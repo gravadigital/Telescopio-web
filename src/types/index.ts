@@ -16,6 +16,15 @@ export interface Event {
   stage: 'registration' | 'attachment_upload' | 'voting' | 'completed';
   date: string;
   location: string;
+  organizer?: string;
+  status?: 'active' | 'cancelled' | 'completed';
+  participantIDs?: string[];
+  voteCount?: {
+    yes: number;
+    maybe: number;
+    no: number;
+  };
+  attachmentCount?: number;
   participant_ids?: string[];
   max_participants?: number;
   created_at?: string;

@@ -2,6 +2,7 @@ import React, { useState, FormEvent, ChangeEvent } from 'react';
 import './Auth.css';
 import { useAuth } from '../context/AuthContext';
 import { AuthProps, FormData, User } from '../types';
+import { UserService, HealthService } from '../services/api';
 
 const Auth: React.FC<AuthProps> = ({ onClose }) => {
   const [isLogin, setIsLogin] = useState<boolean>(true);
@@ -11,8 +12,18 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
   });
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [apiAvailable, setApiAvailable] = useState<boolean>(false);
 
   const { login } = useAuth();
+
+  // Verificar API al cargar componente
+  React.useEffect(() => {
+    const checkApi = async () => {
+      const isHealthy = await HealthService.checkHealth();
+      setApiAvailable(isHealthy);
+    };
+    checkApi();
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
     setFormData({
@@ -35,7 +46,33 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
         throw new Error('El nombre es requerido para registro');
       }
 
-      const userData: User = {
+      let userData: User;
+
+      if (apiAvailable) {
+        try {
+          // Intentar autenticar con la API real
+          userData = await UserService.authenticateUser(
+            formData.email, 
+            isLogin ? undefined : formData.name
+          );
+          console.log('✅ Usuario autenticado con API:', userData);
+        } catch (apiError) {
+          console.warn('API authentication failed, falling back to demo mode:', apiError);
+          throw apiError;
+        }
+      } else {
+        // Fallback local
+        throw new Error('API not available');
+      }
+
+      login(userData);
+      onClose && onClose();
+      
+    } catch (err) {
+      console.warn('Using demo authentication:', err);
+      
+      // Fallback: crear usuario demo local
+      const demoUserData: User = {
         id: `user_${Date.now()}`,
         name: formData.name || formData.email.split('@')[0],
         email: formData.email,
@@ -44,12 +81,8 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
         createdEventIDs: []
       };
 
-      // Por ahora simularemos el login exitoso
-      login(userData);
-      
+      login(demoUserData);
       onClose && onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -65,8 +98,20 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
     <div className="auth-overlay">
       <div className="auth-modal">
         <div className="auth-header">
-          <h2>{isLogin ? 'Iniciar Sesión' : 'Registro'}</h2>
+          <h2>🔭 {isLogin ? 'Iniciar Sesión' : 'Registro'}</h2>
           <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+
+        <div className="api-status-auth">
+          {apiAvailable ? (
+            <div className="status-indicator online">
+              🟢 Conectado al servidor
+            </div>
+          ) : (
+            <div className="status-indicator offline">
+              🟡 Modo demostración
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -109,7 +154,7 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
             className="auth-submit-btn"
             disabled={loading}
           >
-            {loading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')}
+            {loading ? 'Procesando...' : (isLogin ? '🚀 Iniciar Sesión' : '✨ Registrarse')}
           </button>
         </form>
 
@@ -121,8 +166,15 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
               className="switch-btn"
               onClick={handleSwitchMode}
             >
-              {isLogin ? 'Regístrate' : 'Inicia sesión'}
+              {isLogin ? 'Regístrate aquí' : 'Inicia sesión'}
             </button>
+          </p>
+        </div>
+
+        <div className="auth-info">
+          <p className="demo-notice">
+            💡 Este es un proyecto de demostración. 
+            {!apiAvailable && ' La API no está disponible, funcionando en modo local.'}
           </p>
         </div>
       </div>
