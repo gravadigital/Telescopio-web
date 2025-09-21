@@ -3,14 +3,129 @@ import './Events.css';
 import EventDetail from './EventDetail';
 import { useAuth } from '../context/AuthContext';
 import { Event, EventsProps } from '../types';
-import { EventService, HealthService } from '../services/api';
+import { EventService, ApiHealthService } from '../services/api';
+
+interface CreateEventModalProps {
+  onClose: () => void;
+  onCreate: (eventData: {
+    name: string;
+    description: string;
+    date: string;
+    location?: string;
+    organizer?: string;
+  }) => Promise<void>;
+  creating: boolean;
+}
+
+const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreate, creating }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    date: '',
+    location: '',
+    organizer: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onCreate(formData);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="create-event-modal">
+        <div className="modal-header">
+          <h2>✨ Crear Nuevo Evento</h2>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="create-event-form">
+          <div className="form-group">
+            <label>🔭 Nombre del Evento:</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              placeholder="ej. Observación de Júpiter 2026"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>📝 Descripción:</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              required
+              placeholder="Describe el evento astronómico..."
+              rows={4}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>📅 Fecha de inicio:</label>
+            <input
+              type="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>📍 Ubicación:</label>
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="Ubicación del evento (opcional)"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>👨‍💼 Organizador:</label>
+            <input
+              type="text"
+              name="organizer"
+              value={formData.organizer}
+              onChange={handleChange}
+              placeholder="Nombre del organizador (opcional)"
+            />
+          </div>
+
+          <div className="form-actions">
+            <button type="button" onClick={onClose} className="cancel-btn">
+              Cancelar
+            </button>
+            <button type="submit" disabled={creating} className="submit-btn">
+              {creating ? 'Creando...' : '🚀 Crear Evento'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 const Events: React.FC<EventsProps> = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [apiAvailable, setApiAvailable] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [creating, setCreating] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   const { isAuthenticated } = useAuth();
 
@@ -23,9 +138,7 @@ const Events: React.FC<EventsProps> = () => {
     setError('');
     
     try {
-      // Verificar si la API está disponible
-      const isHealthy = await HealthService.checkHealth();
-      setApiAvailable(isHealthy);
+      const isHealthy = await ApiHealthService.checkHealth();
       
       if (isHealthy) {
         console.log('🟢 API está disponible, cargando eventos desde el servidor...');
@@ -33,7 +146,6 @@ const Events: React.FC<EventsProps> = () => {
         console.log('🟡 API no disponible, usando datos de demostración...');
       }
       
-      // Cargar eventos (fallback automático incluido en EventService)
       const eventsData = await EventService.getAllEvents();
       setEvents(eventsData);
       
@@ -59,6 +171,36 @@ const Events: React.FC<EventsProps> = () => {
 
   const handleRefresh = (): void => {
     checkApiAndFetchEvents();
+  };
+
+  const handleCreateEvent = async (eventData: {
+    name: string;
+    description: string;
+    date: string;
+    location?: string;
+    organizer?: string;
+  }): Promise<void> => {
+    setCreating(true);
+    setError(''); 
+    
+    try {
+      const newEvent = await EventService.createEvent(eventData);
+      setShowCreateModal(false);
+      
+      console.log('✅ Evento creado exitosamente:', newEvent);
+      
+      await checkApiAndFetchEvents();
+      
+      setError(''); 
+      setSuccessMessage(`🎉 ¡Evento "${eventData.name}" creado exitosamente!`);
+      setTimeout(() => setSuccessMessage(''), 5000); 
+            
+    } catch (error) {
+      console.error('Error creating event:', error);
+      setError('❌ Error al crear el evento. Intenta nuevamente.');
+    } finally {
+      setCreating(false);
+    }
   };
 
   const getStageDisplayName = (stage: Event['stage']): string => {
@@ -102,14 +244,15 @@ const Events: React.FC<EventsProps> = () => {
           <div className="events-header">
             <h1>🔭 Eventos Telescopio</h1>
             
-            <div className="events-controls">
-              <div className="api-status">
-                {apiAvailable ? (
-                  <span className="status-online">🟢 Conectado a la API</span>
-                ) : (
-                  <span className="status-offline">🟡 Modo demostración</span>
-                )}
-              </div>
+            <div className="events-controls">              
+              <button 
+                className="create-btn"
+                onClick={() => setShowCreateModal(true)}
+                disabled={!isAuthenticated}
+                title={!isAuthenticated ? "Inicia sesión para crear eventos" : ""}
+              >
+                ✨ Crear Evento
+              </button>
               
               <button 
                 className="refresh-btn"
@@ -120,6 +263,13 @@ const Events: React.FC<EventsProps> = () => {
               </button>
             </div>
           </div>
+
+          {/* Mensaje de éxito */}
+          {successMessage && (
+            <div className="success-message">
+              <p>✅ {successMessage}</p>
+            </div>
+          )}
 
           {error && (
             <div className="error-message">
@@ -151,12 +301,21 @@ const Events: React.FC<EventsProps> = () => {
                       <strong>📝 Descripción:</strong> {event.description}
                     </p>
                     <p className="event-date">
-                      <strong>📅 Fecha:</strong> {new Date(event.date).toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        weekday: 'long'
-                      })}
+                      <strong>📅 Fecha:</strong> {(() => {
+                        try {
+                          const date = new Date(event.date);
+                          return isNaN(date.getTime()) 
+                            ? 'Fecha por determinar' 
+                            : date.toLocaleDateString('es-ES', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                weekday: 'long'
+                              });
+                        } catch {
+                          return 'Fecha por determinar';
+                        }
+                      })()}
                     </p>
                     <p className="event-location">
                       <strong>📍 Ubicación:</strong> {event.location}
@@ -199,6 +358,14 @@ const Events: React.FC<EventsProps> = () => {
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           onRegistered={handleEventRegistered}
+        />
+      )}
+
+      {showCreateModal && (
+        <CreateEventModal
+          onClose={() => setShowCreateModal(false)}
+          onCreate={handleCreateEvent}
+          creating={creating}
         />
       )}
     </>

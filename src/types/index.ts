@@ -1,4 +1,3 @@
-// Tipos globales para la aplicación Telescopio
 
 export interface User {
   id: string;
@@ -46,6 +45,8 @@ export interface ApiConfig {
   BASE_URL: string;
   ENDPOINTS: {
     EVENTS: string;
+    USERS: string;
+    USER_AUTHENTICATE: string;
     EVENT_REGISTER: (eventId: string) => string;
     EVENT_STAGE: (eventId: string) => string;
     EVENT_PARTICIPANTS: (eventId: string) => string;
