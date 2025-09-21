@@ -2,7 +2,8 @@ import React, { useState, FormEvent, ChangeEvent } from 'react';
 import './Auth.css';
 import { useAuth } from '../context/AuthContext';
 import { AuthProps, FormData, User } from '../types';
-import { UserService, HealthService } from '../services/api';
+import { UserService } from '../services/api';
+
 
 const Auth: React.FC<AuthProps> = ({ onClose }) => {
   const [isLogin, setIsLogin] = useState<boolean>(true);
@@ -16,10 +17,9 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
 
   const { login } = useAuth();
 
-  // Verificar API al cargar componente
   React.useEffect(() => {
     const checkApi = async () => {
-      const isHealthy = await HealthService.checkHealth();
+      const isHealthy = true; 
       setApiAvailable(isHealthy);
     };
     checkApi();
@@ -50,12 +50,20 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
 
       if (apiAvailable) {
         try {
-          // Intentar autenticar con la API real
-          userData = await UserService.authenticateUser(
-            formData.email, 
-            isLogin ? undefined : formData.name
-          );
-          console.log('✅ Usuario autenticado con API:', userData);
+          if (isLogin) {
+            // Intentar autenticar con la API real (usando password demo por ahora)
+            userData = await UserService.authenticateUser(
+              formData.email, 
+              "demo123"
+            );
+          } else {
+            // Crear nuevo usuario
+            userData = await UserService.createUser({
+              name: formData.name || "Usuario",
+              email: formData.email
+            });
+          }
+          console.log('✅ Usuario autenticado/creado con API:', userData);
         } catch (apiError) {
           console.warn('API authentication failed, falling back to demo mode:', apiError);
           throw apiError;

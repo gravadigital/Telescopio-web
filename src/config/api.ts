@@ -5,6 +5,8 @@ export const API_CONFIG: ApiConfig = {
   BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:8080',
   ENDPOINTS: {
     EVENTS: '/api/v1/events',
+    USERS: '/api/v1/users',
+    USER_AUTHENTICATE: '/api/v1/users/authenticate',
     EVENT_REGISTER: (eventId: string) => `/api/v1/events/${eventId}/register`,
     EVENT_STAGE: (eventId: string) => `/api/v1/events/${eventId}/stage`,
     EVENT_PARTICIPANTS: (eventId: string) => `/api/v1/events/${eventId}/participants`,
@@ -50,7 +52,6 @@ export const apiRequest = async <T = any>(
   }
 };
 
-// Función helper para subir archivos
 export const uploadFile = async (endpoint: string, formData: FormData): Promise<any> => {
   const url = `${API_CONFIG.BASE_URL}${endpoint}`;
   

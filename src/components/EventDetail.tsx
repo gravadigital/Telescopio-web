@@ -2,8 +2,91 @@ import React, { useState, ChangeEvent } from 'react';
 import './EventDetail.css';
 import { useAuth } from '../context/AuthContext';
 import { EventDetailProps, Event } from '../types';
-import { EventService, AttachmentService } from '../services/api';
+import { EventService, AttachmentService, VoteService } from '../services/api';
 import Participants from './Participants';
+
+// Componente de votación
+interface VotingSectionProps {
+  eventId: string;
+  userId: string;
+  onVoteSubmitted: () => void;
+}
+
+const VotingSection: React.FC<VotingSectionProps> = ({ eventId, userId, onVoteSubmitted }) => {
+  const [selectedVote, setSelectedVote] = useState<'yes' | 'no' | 'maybe' | null>(null);
+  const [voting, setVoting] = useState(false);
+  const [hasVoted, setHasVoted] = useState(false);
+
+  const handleVoteSubmit = async () => {
+    if (!selectedVote || !userId) return;
+
+    setVoting(true);
+    try {
+      await VoteService.submitVote(eventId, userId, selectedVote);
+      setHasVoted(true);
+      onVoteSubmitted();
+    } catch (error) {
+      console.error('Error submitting vote:', error);
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  if (hasVoted) {
+    return (
+      <div className="voting-section completed">
+        <h3>🗳️ Votación</h3>
+        <div className="vote-completed">
+          <p>✅ ¡Gracias por votar!</p>
+          <p>Tu voto ha sido registrado correctamente.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="voting-section">
+      <h3>🗳️ Votación del Evento</h3>
+      <p>Por favor, vota tu preferencia para este evento:</p>
+      
+      <div className="vote-options">
+        <div 
+          className={`vote-option ${selectedVote === 'yes' ? 'selected' : ''}`}
+          onClick={() => setSelectedVote('yes')}
+        >
+          <div className="vote-icon">👍</div>
+          <div className="vote-label">Sí, participaré</div>
+        </div>
+        
+        <div 
+          className={`vote-option ${selectedVote === 'maybe' ? 'selected' : ''}`}
+          onClick={() => setSelectedVote('maybe')}
+        >
+          <div className="vote-icon">🤔</div>
+          <div className="vote-label">Tal vez</div>
+        </div>
+        
+        <div 
+          className={`vote-option ${selectedVote === 'no' ? 'selected' : ''}`}
+          onClick={() => setSelectedVote('no')}
+        >
+          <div className="vote-icon">👎</div>
+          <div className="vote-label">No puedo participar</div>
+        </div>
+      </div>
+
+      {selectedVote && (
+        <button 
+          className="submit-vote-btn"
+          onClick={handleVoteSubmit}
+          disabled={voting}
+        >
+          {voting ? 'Enviando voto...' : 'Confirmar Voto'}
+        </button>
+      )}
+    </div>
+  );
+};
 
 const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered }) => {
   const [loading, setLoading] = useState<boolean>(false);
@@ -13,13 +96,13 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [isUserRegistered, setIsUserRegistered] = useState<boolean>(false);
   const [showParticipants, setShowParticipants] = useState<boolean>(false);
+  const [currentStage, setCurrentStage] = useState<Event['stage']>(event.stage);
+  const [stageLoading, setStageLoading] = useState<boolean>(false);
   
   const { user, isAuthenticated, joinEvent } = useAuth();
 
-  // Verificar si el usuario está registrado al cargar el componente
   React.useEffect(() => {
     if (user) {
-      // Verificar si el usuario tiene este evento en su lista de eventos registrados
       const userIsRegistered = user.joinedEventIDs.includes(event.id);
       setIsUserRegistered(userIsRegistered);
     }
@@ -27,6 +110,29 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
 
   const canRegister = event.stage === 'registration' && isAuthenticated && !isUserRegistered;
   const canUploadAttachment = event.stage === 'attachment_upload' && isUserRegistered;
+  const isOrganizer = user?.role === 'organizer' || user?.role === 'admin';
+
+  const handleStageChange = async (newStage: Event['stage']): Promise<void> => {
+    setStageLoading(true);
+    setError('');
+    
+    try {
+      await EventService.updateEventStage(event.id, newStage);
+      setCurrentStage(newStage);
+      setSuccess(`Etapa actualizada a: ${getStageDisplayName(newStage)}`);
+    } catch (err) {
+      console.error('Error updating event stage:', err);
+      setError('Error al actualizar la etapa del evento');
+    } finally {
+      setStageLoading(false);
+    }
+  };
+
+  const getNextStage = (stage: Event['stage']): Event['stage'] | null => {
+    const stageOrder: Event['stage'][] = ['registration', 'attachment_upload', 'voting', 'completed'];
+    const currentIndex = stageOrder.indexOf(stage);
+    return currentIndex < stageOrder.length - 1 ? stageOrder[currentIndex + 1] : null;
+  };
 
   const handleRegister = async (): Promise<void> => {
     if (!isAuthenticated || !user) {
@@ -39,15 +145,13 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
     setSuccess('');
 
     try {
-      // Intentar registrarse usando la API real
-      await EventService.registerParticipant(event.id, user.id);
+      await EventService.registerForEvent(event.id, user.id);
       setSuccess('¡Te has registrado exitosamente en el evento!');
       setIsUserRegistered(true); 
       joinEvent(event.id); 
       onRegistered && onRegistered();
     } catch (err) {
       console.error('Error registering for event:', err);
-      // Fallback: continuar sin error para demo
       setSuccess('¡Te has registrado exitosamente en el evento! (modo demo)');
       setIsUserRegistered(true); 
       joinEvent(event.id); 
@@ -60,13 +164,11 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validar tamaño (10MB)
       if (file.size > 10 * 1024 * 1024) {
         setError('El archivo no puede superar los 10MB');
         return;
       }
 
-      // Validar tipo
       const allowedTypes = [
         'image/jpeg', 'image/png', 'image/gif', 'image/webp',
         'application/pdf', 'text/plain', 
@@ -99,21 +201,17 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
     setSuccess('');
 
     try {
-      // Intentar subir usando la API real
       await AttachmentService.uploadAttachment(event.id, user.id, selectedFile);
       setSuccess('¡Archivo subido exitosamente!');
       setSelectedFile(null);
       
-      // Reset file input
       const fileInput = document.getElementById('attachment-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
     } catch (err) {
       console.error('Error uploading file:', err);
-      // Fallback: continuar sin error para demo
       setSuccess('¡Archivo subido exitosamente! (modo demo)');
       setSelectedFile(null);
       
-      // Reset file input
       const fileInput = document.getElementById('attachment-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
     } finally {
@@ -142,14 +240,20 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
         <div className="event-detail-content">
           <div className="event-info">
             <div className="info-item">
-              <strong>ID:</strong> {event.id}
-            </div>
-            
-            <div className="info-item">
               <strong>Estado:</strong> 
-              <span className={`stage-badge stage-${event.stage}`}>
-                {getStageDisplayName(event.stage)}
+              <span className={`stage-badge stage-${currentStage}`}>
+                {getStageDisplayName(currentStage)}
               </span>
+              {isOrganizer && getNextStage(currentStage) && (
+                <button 
+                  className="stage-advance-btn"
+                  onClick={() => handleStageChange(getNextStage(currentStage)!)}
+                  disabled={stageLoading}
+                  title={`Avanzar a: ${getStageDisplayName(getNextStage(currentStage)!)}`}
+                >
+                  {stageLoading ? '⏳' : '▶️'} Avanzar Etapa
+                </button>
+              )}
             </div>
 
             {event.description && (
@@ -264,14 +368,15 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
               </div>
             )}
 
-            {isUserRegistered && event.stage === 'voting' && (
-              <div className="voting-info">
-                <p>🗳️ El evento está en fase de votación</p>
-                <p>Pronto podrás votar por las participaciones.</p>
-              </div>
+            {isUserRegistered && currentStage === 'voting' && (
+              <VotingSection 
+                eventId={event.id}
+                userId={user?.id || ''}
+                onVoteSubmitted={() => setSuccess('¡Tu voto ha sido registrado!')}
+              />
             )}
 
-            {isUserRegistered && event.stage === 'completed' && (
+            {isUserRegistered && currentStage === 'completed' && (
               <div className="results-info">
                 <p>🏆 Los resultados ya están disponibles</p>
                 <button className="secondary-btn">Ver Resultados</button>

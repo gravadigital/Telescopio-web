@@ -1,301 +1,365 @@
-import { apiRequest, uploadFile, checkApiHealth, API_CONFIG } from '../config/api';
-import { Event, User } from '../types';
+import { apiRequest, checkApiHealth, API_CONFIG } from "../config/api";
+import { Event, User } from "../types";
 
-// Interfaz para crear eventos
 interface CreateEventRequest {
   name: string;
   description: string;
-  start_date: string;
-  end_date: string;
+  date: string;
+  location?: string;
+  organizer?: string;
 }
 
-// Interfaz para crear usuarios
 interface CreateUserRequest {
   name: string;
   email: string;
 }
 
-// Servicios para eventos
+interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  role: "participant" | "organizer" | "admin";
+  joined_event_ids?: string[];
+  created_event_ids?: string[];
+}
+
 export const EventService = {
-  // Obtener todos los eventos
   async getAllEvents(): Promise<Event[]> {
     try {
       const response = await apiRequest<{ data: any[] }>(API_CONFIG.ENDPOINTS.EVENTS);
       
-      const events = response.data?.map((eventData: any) => ({
-        id: eventData.id,
-        title: eventData.name, // Backend usa 'name', frontend espera 'title'
-        description: eventData.description,
-        date: eventData.start_date, // Backend usa 'start_date', frontend espera 'date'
-        location: 'Observatorio Virtual', // Valor por defecto
-        organizer: 'Sistema Telescopio', // Valor por defecto
-          status: (eventData.stage === 'registration' || eventData.stage === 'voting' 
-           ? 'active' 
-           : eventData.stage === 'results' 
-           ? 'completed' 
-           : 'active') as "active" | "completed" | "cancelled",
-        stage: eventData.stage,
-        participantIDs: [], // Por ahora vacío
-        voteCount: { yes: 0, maybe: 0, no: 0 }, // Por ahora vacío
+      if (!response || !response.data) {
+        throw new Error("No data received");
+      }
+      
+      const events = response.data.map(event => ({
+        id: event.id,
+        title: event.name || event.title,
+        description: event.description,
+        date: event.start_date || event.date,
+        location: event.location || "Ubicación por determinar",
+        organizer: event.organizer || "Organizador por determinar",
+        status: event.status === "completed" || event.status === "active" || event.status === "cancelled" 
+          ? event.status as "completed" | "active" | "cancelled"
+          : "active" as const,
+        stage: (event.stage as "registration" | "attachment_upload" | "voting" | "completed") || "registration",
+        participantIDs: [],
+        voteCount: {
+          yes: 0,
+          maybe: 0,
+          no: 0
+        },
         attachmentCount: 0
-      })) || [];
+      }));
       
-      console.log('✅ Eventos obtenidos de la API:', events);
       return events;
-      
     } catch (error) {
-      console.warn('Failed to fetch events from API, using mock data:', error);
-      // Fallback a datos mock para desarrollo
-      return getMockEvents();
+      console.warn("Failed to fetch events from API, using fallback:", error);
+      
+      return [
+        {
+          id: "demo_event_1",
+          title: "Distributed Telescope Time Allocation 2026",
+          description: "Annual telescope time allocation using distributed voting system based on Merrifield & Saari (2009) mathematical framework for fair and efficient proposal evaluation.",
+          date: "2026-01-13",
+          location: "Ubicación por determinar",
+          organizer: "Sistema Telescopio",
+          status: "active" as const,
+          stage: "registration" as const,
+          participantIDs: [],
+          voteCount: { yes: 5, maybe: 2, no: 0 },
+          attachmentCount: 3
+        }
+      ];
     }
   },
 
-  // Crear un nuevo evento
   async createEvent(eventData: CreateEventRequest): Promise<Event> {
-    const response = await apiRequest<{ event: Event }>(
-      API_CONFIG.ENDPOINTS.EVENTS,
-      {
-        method: 'POST',
-        body: JSON.stringify(eventData),
-      }
-    );
-    return response.event;
-  },
-
-  // Obtener un evento por ID
-  async getEvent(eventId: string): Promise<Event> {
     try {
-      const response = await apiRequest<{ data: any }>(`${API_CONFIG.ENDPOINTS.EVENTS}/${eventId}`);
-      
-      // Transformar un evento individual
-      const eventData = response.data;
-      const event: Event = {
-        id: eventData.id,
-        title: eventData.name,
+      console.log("Creating event with data:", eventData);
+
+      const startDate = new Date(eventData.date);
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 1);
+
+      const requestBody = {
+        name: eventData.name,
         description: eventData.description,
-        date: eventData.start_date,
-        location: 'Observatorio Virtual',
-        organizer: 'Sistema Telescopio',
-        status: eventData.stage === 'registration' ? 'active' : 
-                eventData.stage === 'voting' ? 'active' :
-                eventData.stage === 'results' ? 'completed' : 'active',
-        stage: eventData.stage,
+        start_date: eventData.date,
+        end_date: endDate.toISOString().split("T")[0],
+      };
+
+      console.log("Sending request body:", requestBody);
+
+      const response = await apiRequest<{ message: string; event: any }>(
+        API_CONFIG.ENDPOINTS.EVENTS,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      console.log("API response:", response);
+
+      const backendEvent = response.event;
+      return {
+        id: backendEvent.id,
+        title: backendEvent.name || backendEvent.title,
+        description: backendEvent.description,
+        date: backendEvent.start_date || backendEvent.date,
+        location: eventData.location || "Ubicación por determinar",
+        organizer: eventData.organizer || "Organizador por determinar",
+        status: "active",
+        stage: "registration" as const,
         participantIDs: [],
         voteCount: { yes: 0, maybe: 0, no: 0 },
         attachmentCount: 0
       };
-      
-      console.log('✅ Evento individual obtenido:', event);
-      return event;
-      
     } catch (error) {
-      console.warn('Failed to fetch event from API, using mock:', error);
-      // Fallback a datos mock
-      const mockEvents = getMockEvents();
-      const mockEvent = mockEvents.find(e => e.id === eventId);
-      if (!mockEvent) {
-        throw new Error(`Event ${eventId} not found`);
-      }
-      return mockEvent;
+      console.error("Failed to create event with API:", error);
+      throw error;
     }
   },
 
-  // Registrar participante en un evento
-  async registerParticipant(eventId: string, userId: string): Promise<void> {
-    await apiRequest(
-      API_CONFIG.ENDPOINTS.EVENT_REGISTER(eventId),
-      {
-        method: 'POST',
-        body: JSON.stringify({ user_id: userId }),
-      }
-    );
-  },
-
-  // Obtener participantes de un evento
-  async getEventParticipants(eventId: string): Promise<User[]> {
-    const response = await apiRequest<{ participants: User[] }>(
-      API_CONFIG.ENDPOINTS.EVENT_PARTICIPANTS(eventId)
-    );
-    return response.participants || [];
-  },
-
-  // Actualizar etapa del evento
-  async updateEventStage(eventId: string, stage: Event['stage']): Promise<void> {
-    await apiRequest(
-      API_CONFIG.ENDPOINTS.EVENT_STAGE(eventId),
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ stage }),
-      }
-    );
-  },
-
-  // Obtener resultados de un evento
-  async getEventResults(eventId: string): Promise<any> {
-    const response = await apiRequest(API_CONFIG.ENDPOINTS.EVENT_RESULTS(eventId));
-    return response.data || response;
-  }
-};
-
-// Servicios para usuarios (simplificado - el backend parece no tener endpoints de usuarios directos)
-export const UserService = {
-  // Crear un nuevo usuario (simulado por ahora)
-  async createUser(userData: CreateUserRequest): Promise<User> {
-    // Por ahora simulamos la creación de usuario
-    return {
-      id: `user_${Date.now()}`,
-      name: userData.name,
-      email: userData.email,
-      role: 'participant' as const,
-      joinedEventIDs: [],
-      createdEventIDs: []
-    };
-  },
-
-  // Autenticar usuario (simulado)
-  async authenticateUser(email: string, name?: string): Promise<User> {
-    const userData = {
-      name: name || email.split('@')[0],
-      email
-    };
-    return await this.createUser(userData);
-  }
-};
-
-// Servicios para archivos adjuntos
-export const AttachmentService = {
-  // Subir archivo adjunto
-  async uploadAttachment(eventId: string, participantId: string, file: File): Promise<any> {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const endpoint = API_CONFIG.ENDPOINTS.EVENT_ATTACHMENT(eventId, participantId);
-    return await uploadFile(endpoint, formData);
-  },
-
-  // Obtener archivos adjuntos de un evento (no implementado en backend aún)
-  async getEventAttachments(eventId: string): Promise<any[]> {
+  async getEventById(id: string): Promise<Event | null> {
     try {
-      const response = await apiRequest(`/api/v1/attachments/event/${eventId}`);
-      return response.attachments || [];
+      const response = await apiRequest<any>(`${API_CONFIG.ENDPOINTS.EVENTS}/${id}`);
+      
+      if (!response) {
+        return null;
+      }
+
+      return {
+        id: response.id,
+        title: response.name || response.title,
+        description: response.description,
+        date: response.start_date || response.date,
+        location: response.location || "Ubicación por determinar",
+        organizer: response.organizer || "Organizador por determinar",
+        status: response.status || "active",
+        stage: response.stage || "registration",
+        participantIDs: response.participant_ids || [],
+        voteCount: response.vote_count || { yes: 0, maybe: 0, no: 0 },
+        attachmentCount: response.attachment_count || 0
+      };
     } catch (error) {
-      console.warn('Failed to fetch attachments:', error);
+      console.error("Failed to fetch event by ID:", error);
+      return null;
+    }
+  },
+
+  async updateEventStage(eventId: string, newStage: string): Promise<void> {
+    try {
+      await apiRequest<any>(
+        API_CONFIG.ENDPOINTS.EVENT_STAGE(eventId),
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ stage: newStage }),
+        }
+      );
+    } catch (error) {
+      console.error("Failed to update event stage:", error);
+      throw error;
+    }
+  },
+
+  async registerForEvent(eventId: string, userId: string): Promise<void> {
+    try {
+      await apiRequest<any>(
+        API_CONFIG.ENDPOINTS.EVENT_REGISTER(eventId),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ user_id: userId }),
+        }
+      );
+    } catch (error) {
+      console.error("Failed to register for event:", error);
+      throw error;
+    }
+  },
+
+  async getEventParticipants(eventId: string): Promise<User[]> {
+    try {
+      const response = await apiRequest<{ data: any[] }>(
+        API_CONFIG.ENDPOINTS.EVENT_PARTICIPANTS(eventId)
+      );
+
+      return response.data?.map(participant => ({
+        id: participant.id,
+        name: participant.name,
+        email: participant.email,
+        role: participant.role || "participant",
+        joinedEventIDs: participant.joined_event_ids || [],
+        createdEventIDs: participant.created_event_ids || []
+      })) || [];
+    } catch (error) {
+      console.error("Failed to fetch event participants:", error);
       return [];
     }
   }
 };
 
-// Servicios para votación
-export const VoteService = {
-  // Crear configuración de votación
-  async createVotingConfiguration(eventId: string, config: any): Promise<any> {
-    return await apiRequest(
-      `/api/v1/events/${eventId}/voting-config`,
-      {
-        method: 'POST',
-        body: JSON.stringify(config),
-      }
-    );
-  },
+export const UserService = {
+  async createUser(userData: CreateUserRequest): Promise<User> {
+    try {
+      const response = await apiRequest<{ message: string; user: ApiUser }>(
+        API_CONFIG.ENDPOINTS.USERS,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        }
+      );
 
-  // Generar asignaciones de votación
-  async generateAssignments(eventId: string): Promise<any> {
-    return await apiRequest(
-      `/api/v1/events/${eventId}/generate-assignments`,
-      {
-        method: 'POST',
-      }
-    );
-  },
-
-  // Obtener asignaciones de votación para un participante
-  async getParticipantAssignment(eventId: string, participantId: string): Promise<any> {
-    return await apiRequest(
-      `/api/v1/events/${eventId}/participants/${participantId}/assignment`
-    );
-  },
-
-  // Enviar votos de ranking
-  async submitRankingVotes(eventId: string, participantId: string, votes: any[]): Promise<void> {
-    await apiRequest(
-      `/api/v1/events/${eventId}/participants/${participantId}/ranking-votes`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ votes }),
-      }
-    );
-  },
-
-  // Obtener resultados distribuidos
-  async getDistributedResults(eventId: string): Promise<any> {
-    return await apiRequest(`/api/v1/events/${eventId}/distributed-results`);
-  },
-
-  // Obtener estadísticas de votación
-  async getVotingStatistics(eventId: string): Promise<any> {
-    return await apiRequest(`/api/v1/events/${eventId}/voting-statistics`);
-  }
-};
-
-// Servicio de salud de la API
-export const HealthService = {
-  async checkHealth(): Promise<boolean> {
-    return await checkApiHealth();
-  }
-};
-
-// Datos mock para desarrollo y fallback
-function getMockEvents(): Event[] {
-  return [
-    {
-      id: '1',
-      title: "Concurso de Astrofotografía Lunar",
-      description: "Captura la belleza de la Luna en todas sus fases. Concurso abierto para fotógrafos aficionados y profesionales.",
-      stage: "registration",
-      date: "2025-10-15",
-      location: "Observatorio Nacional",
-      participant_ids: []
-    },
-    {
-      id: '2',
-      title: "Observación de la Conjunción Jupiter-Saturno",
-      description: "Evento especial para observar y fotografiar la conjunción planetaria más esperada del año.",
-      stage: "registration", 
-      date: "2025-11-20",
-      location: "Monte Palomar",
-      participant_ids: []
-    },
-    {
-      id: '3',
-      title: "Fotografía de Nebulosas",
-      description: "Taller y concurso de fotografía de objetos de espacio profundo. Técnicas avanzadas de astrofotografía.",
-      stage: "attachment_upload",
-      date: "2025-09-10",
-      location: "Observatorio Cerro Tololo",
-      participant_ids: ['user_789']
-    },
-    {
-      id: '4',
-      title: "Maratón de Messier",
-      description: "Desafío para observar y fotografiar el mayor número de objetos del catálogo Messier en una noche.",
-      stage: "voting",
-      date: "2025-08-05",
-      location: "Desierto de Atacama",
-      participant_ids: ['user_101', 'user_202', 'user_303']
-    },
-    {
-      id: '5',
-      title: "Eclipse Solar Total 2025",
-      description: "Evento histórico para la observación y fotografía del eclipse solar total. ¡Una oportunidad única!",
-      stage: "completed",
-      date: "2025-07-15",
-      location: "Zona de Totalidad - Argentina",
-      participant_ids: ['user_404', 'user_505', 'user_606', 'user_707']
+      const apiUser = response.user;
+      return {
+        id: apiUser.id,
+        name: apiUser.name,
+        email: apiUser.email,
+        role: apiUser.role,
+        joinedEventIDs: apiUser.joined_event_ids || [],
+        createdEventIDs: apiUser.created_event_ids || []
+      };
+    } catch (error) {
+      console.error("Failed to create user:", error);
+      throw error;
     }
-  ];
-}
+  },
 
-// Función helper para verificar si la API está disponible
-export const isApiAvailable = async (): Promise<boolean> => {
-  return await HealthService.checkHealth();
+  async getUserById(id: string): Promise<User | null> {
+    try {
+      const response = await apiRequest<ApiUser>(`${API_CONFIG.ENDPOINTS.USERS}/${id}`);
+      
+      if (!response) {
+        return null;
+      }
+
+      return {
+        id: response.id,
+        name: response.name,
+        email: response.email,
+        role: response.role,
+        joinedEventIDs: response.joined_event_ids || [],
+        createdEventIDs: response.created_event_ids || []
+      };
+    } catch (error) {
+      console.error("Failed to fetch user by ID:", error);
+      return null;
+    }
+  },
+
+  async authenticateUser(email: string, password: string): Promise<User> {
+    try {
+      const response = await apiRequest<{ message: string; user: ApiUser }>(
+        API_CONFIG.ENDPOINTS.USER_AUTHENTICATE,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+
+      const apiUser = response.user;
+      return {
+        id: apiUser.id,
+        name: apiUser.name,
+        email: apiUser.email,
+        role: apiUser.role,
+        joinedEventIDs: apiUser.joined_event_ids || [],
+        createdEventIDs: apiUser.created_event_ids || []
+      };
+    } catch (error) {
+      console.error("Failed to authenticate user:", error);
+      throw error;
+    }
+  }
+};
+
+export const AttachmentService = {
+  async uploadAttachment(eventId: string, userId: string, file: File): Promise<any> {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("event_id", eventId);
+      formData.append("user_id", userId);
+
+      const response = await apiRequest<any>(
+        `/api/v1/attachments`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      return response;
+    } catch (error) {
+      console.error("Failed to upload attachment:", error);
+      throw error;
+    }
+  },
+
+  async getEventAttachments(eventId: string): Promise<any[]> {
+    try {
+      const response = await apiRequest<{ data: any[] }>(`/api/v1/attachments?event_id=${eventId}`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Failed to fetch event attachments:", error);
+      return [];
+    }
+  }
+};
+
+export const VoteService = {
+  async submitVote(eventId: string, userId: string, voteType: "yes" | "maybe" | "no"): Promise<any> {
+    try {
+      const response = await apiRequest<any>(
+        `/api/v1/votes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            event_id: eventId,
+            user_id: userId,
+            vote_type: voteType
+          }),
+        }
+      );
+
+      return response;
+    } catch (error) {
+      console.error("Failed to submit vote:", error);
+      throw error;
+    }
+  },
+
+  async getEventVotes(eventId: string): Promise<any[]> {
+    try {
+      const response = await apiRequest<{ data: any[] }>(`/api/v1/votes?event_id=${eventId}`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Failed to fetch event votes:", error);
+      return [];
+    }
+  }
+};
+
+export const ApiHealthService = {
+  async checkHealth(): Promise<boolean> {
+    return checkApiHealth();
+  }
 };
