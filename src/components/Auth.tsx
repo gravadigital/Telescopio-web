@@ -39,11 +39,11 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
 
     try {
       if (!formData.email) {
-        throw new Error('El email es requerido');
+        throw new Error('Email is required');
       }
 
       if (!isLogin && !formData.name) {
-        throw new Error('El nombre es requerido para registro');
+        throw new Error('Name is required for registration');
       }
 
       let userData: User;
@@ -51,19 +51,19 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
       if (apiAvailable) {
         try {
           if (isLogin) {
-            // Intentar autenticar con la API real (usando password demo por ahora)
+            // Try to authenticate with real API (using demo password for now)
             userData = await UserService.authenticateUser(
               formData.email, 
               "demo123"
             );
           } else {
-            // Crear nuevo usuario
+            // Create new user
             userData = await UserService.createUser({
-              name: formData.name || "Usuario",
+              name: formData.name || "User",
               email: formData.email
             });
           }
-          console.log('✅ Usuario autenticado/creado con API:', userData);
+          console.log('✅ User authenticated/created with API:', userData);
         } catch (apiError) {
           console.warn('API authentication failed, falling back to demo mode:', apiError);
           throw apiError;
@@ -79,7 +79,7 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
     } catch (err) {
       console.warn('Using demo authentication:', err);
       
-      // Fallback: crear usuario demo local
+      // Fallback: create local demo user
       const demoUserData: User = {
         id: `user_${Date.now()}`,
         name: formData.name || formData.email.split('@')[0],
@@ -106,18 +106,18 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
     <div className="auth-overlay">
       <div className="auth-modal">
         <div className="auth-header">
-          <h2>🔭 {isLogin ? 'Iniciar Sesión' : 'Registro'}</h2>
+          <h2>🔭 {isLogin ? 'Login' : 'Register'}</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
         <div className="api-status-auth">
           {apiAvailable ? (
             <div className="status-indicator online">
-              🟢 Conectado al servidor
+              🟢 Connected to server
             </div>
           ) : (
             <div className="status-indicator offline">
-              🟡 Modo demostración
+              🟡 Demo mode
             </div>
           )}
         </div>
@@ -125,14 +125,14 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
         <form onSubmit={handleSubmit} className="auth-form">
           {!isLogin && (
             <div className="form-group">
-              <label htmlFor="name">Nombre completo</label>
+              <label htmlFor="name">Full name</label>
               <input
                 type="text"
                 id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Tu nombre completo"
+                placeholder="Your full name"
                 required={!isLogin}
               />
             </div>
@@ -146,7 +146,7 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="tu@email.com"
+              placeholder="your@email.com"
               required
             />
           </div>
@@ -162,27 +162,27 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
             className="auth-submit-btn"
             disabled={loading}
           >
-            {loading ? 'Procesando...' : (isLogin ? '🚀 Iniciar Sesión' : '✨ Registrarse')}
+            {loading ? 'Processing...' : (isLogin ? '🚀 Login' : '✨ Register')}
           </button>
         </form>
 
         <div className="auth-switch">
           <p>
-            {isLogin ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
+            {isLogin ? "Don't have an account? " : 'Already have an account? '}
             <button 
               type="button"
               className="switch-btn"
               onClick={handleSwitchMode}
             >
-              {isLogin ? 'Regístrate aquí' : 'Inicia sesión'}
+              {isLogin ? 'Register here' : 'Login'}
             </button>
           </p>
         </div>
 
         <div className="auth-info">
           <p className="demo-notice">
-            💡 Este es un proyecto de demostración. 
-            {!apiAvailable && ' La API no está disponible, funcionando en modo local.'}
+            💡 This is a demo project. 
+            {!apiAvailable && ' API is not available, running in local mode.'}
           </p>
         </div>
       </div>

@@ -83,8 +83,8 @@ function AppContent(): JSX.Element {
             
             {isAuthenticated ? (
               <>
-                <span className="user-greeting">Hola, {user?.name}</span>
-                <button onClick={() => handleAuthAction('logout')} className="nav-link nav-button">Cerrar Sesión</button>
+                <span className="user-greeting">Hello, {user?.name}</span>
+                <button onClick={() => handleAuthAction('logout')} className="nav-link nav-button">Logout</button>
               </>
             ) : (
               <>
