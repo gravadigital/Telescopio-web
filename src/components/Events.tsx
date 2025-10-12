@@ -40,16 +40,17 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreate, 
 
   return (
     <div className="modal-overlay">
-      <div className="create-event-modal">
+      <div className="modal">
         <div className="modal-header">
-          <h2>✨ Create New Event</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <h2 className="modal-title">Create New Event</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
         </div>
         
-        <form onSubmit={handleSubmit} className="create-event-form">
+        <form onSubmit={handleSubmit} className="modal-body">
           <div className="form-group">
-            <label>🔭 Event Name:</label>
+            <label className="form-label">Event Name:</label>
             <input
+              className="form-input"
               type="text"
               name="name"
               value={formData.name}
@@ -60,8 +61,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreate, 
           </div>
 
           <div className="form-group">
-            <label>📝 Description:</label>
+            <label className="form-label">Description:</label>
             <textarea
+              className="form-textarea"
               name="description"
               value={formData.description}
               onChange={handleChange}
@@ -72,8 +74,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreate, 
           </div>
 
           <div className="form-group">
-            <label>📅 Start Date:</label>
+            <label className="form-label">Start Date:</label>
             <input
+              className="form-input"
               type="date"
               name="date"
               value={formData.date}
@@ -83,8 +86,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreate, 
           </div>
 
           <div className="form-group">
-            <label>📍 Location:</label>
+            <label className="form-label">Location:</label>
             <input
+              className="form-input"
               type="text"
               name="location"
               value={formData.location}
@@ -94,8 +98,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreate, 
           </div>
 
           <div className="form-group">
-            <label>👨‍💼 Organizer:</label>
+            <label className="form-label">Organizer:</label>
             <input
+              className="form-input"
               type="text"
               name="organizer"
               value={formData.organizer}
@@ -104,12 +109,12 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreate, 
             />
           </div>
 
-          <div className="form-actions">
-            <button type="button" onClick={onClose} className="cancel-btn">
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn btn-secondary">
               Cancel
             </button>
-            <button type="submit" disabled={creating} className="submit-btn">
-              {creating ? 'Creating...' : '🚀 Create Event'}
+            <button type="submit" disabled={creating} className="btn btn-primary">
+              {creating ? 'Creating...' : 'Create Event'}
             </button>
           </div>
         </form>
@@ -141,9 +146,9 @@ const Events: React.FC<EventsProps> = () => {
       const isHealthy = await ApiHealthService.checkHealth();
       
       if (isHealthy) {
-        console.log('🟢 API is available, loading events from server...');
+        console.log('API is available, loading events from server...');
       } else {
-        console.log('🟡 API not available, using demo data...');
+        console.log('API not available, using demo data...');
       }
       
       const eventsData = await EventService.getAllEvents();
@@ -187,17 +192,17 @@ const Events: React.FC<EventsProps> = () => {
       const newEvent = await EventService.createEvent(eventData);
       setShowCreateModal(false);
       
-      console.log('✅ Event created successfully:', newEvent);
+      console.log('Event created successfully:', newEvent);
       
       await checkApiAndFetchEvents();
       
       setError(''); 
-      setSuccessMessage(`🎉 Event "${eventData.name}" created successfully!`);
+      setSuccessMessage(`Event "${eventData.name}" created successfully!`);
       setTimeout(() => setSuccessMessage(''), 5000); 
             
     } catch (error) {
       console.error('Error creating event:', error);
-      setError('❌ Error creating event. Please try again.');
+      setError('Error creating event. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -213,15 +218,7 @@ const Events: React.FC<EventsProps> = () => {
     return stages[stage] || stage;
   };
 
-  const getStageIcon = (stage: Event['stage']): string => {
-    const icons: Record<Event['stage'], string> = {
-      'registration': '📝',
-      'attachment_upload': '📤', 
-      'voting': '🗳️',
-      'completed': '🏆'
-    };
-    return icons[stage] || '📅';
-  };
+
 
   if (loading) {
     return (
@@ -242,39 +239,39 @@ const Events: React.FC<EventsProps> = () => {
       <div className="events-container">
         <div className="events-content">
           <div className="events-header">
-            <h1>🔭 Telescopio Events</h1>
+            <h1>Telescopio Events</h1>
             
             <div className="events-controls">              
               <button 
-                className="create-btn"
+                className="btn btn-warning btn-md"
                 onClick={() => setShowCreateModal(true)}
                 disabled={!isAuthenticated}
                 title={!isAuthenticated ? "Log in to create events" : ""}
               >
-                ✨ Create Event
+                Create Event
               </button>
               
               <button 
-                className="refresh-btn"
+                className="btn btn-secondary btn-md"
                 onClick={handleRefresh}
                 disabled={loading}
               >
-                🔄 Refresh
+                Refresh
               </button>
             </div>
           </div>
 
           {/* Success message */}
           {successMessage && (
-            <div className="success-message">
-              <p>✅ {successMessage}</p>
+            <div className="alert alert-success">
+              <p>{successMessage}</p>
             </div>
           )}
 
           {error && (
-            <div className="error-message">
-              <p>❌ {error}</p>
-              <button onClick={handleRefresh} className="retry-btn">
+            <div className="alert alert-danger">
+              <p>{error}</p>
+              <button onClick={handleRefresh} className="btn btn-danger btn-sm">
                 Retry
               </button>
             </div>
@@ -282,72 +279,99 @@ const Events: React.FC<EventsProps> = () => {
           
           {events.length === 0 && !loading && !error ? (
             <div className="empty-state">
-              <p>🌌 No events available at this time.</p>
+              <p>No events available at this time.</p>
               <p>Come back soon for new observation opportunities!</p>
             </div>
           ) : (
-            <div className="events-list">
-              {events.map((event) => (
-                <div key={event.id} className="event-card">
-                  <div className="event-header">
-                    <h3>{event.title}</h3>
-                    <span className={`event-stage stage-${event.stage}`}>
-                      {getStageIcon(event.stage)} {getStageDisplayName(event.stage)}
-                    </span>
-                  </div>
-                  
-                  <div className="event-details">
-                    <p className="event-description">
-                      <strong>📝 Description:</strong> {event.description}
-                    </p>
-                    <p className="event-date">
-                      <strong>📅 Date:</strong> {(() => {
-                        try {
-                          const date = new Date(event.date);
-                          return isNaN(date.getTime()) 
-                            ? 'Date to be determined' 
-                            : date.toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                weekday: 'long'
-                              });
-                        } catch {
-                          return 'Date to be determined';
-                        }
-                      })()}
-                    </p>
-                    <p className="event-location">
-                      <strong>📍 Location:</strong> {event.location}
-                    </p>
-                    {event.participant_ids && event.participant_ids.length > 0 && (
-                      <p className="event-participants">
-                        <strong>👥 Participants:</strong> {event.participant_ids.length}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="event-actions">
-                    <button 
-                      className="details-btn"
-                      onClick={() => setSelectedEvent(event)}
-                    >
-                      🔍 View Details
-                    </button>
-                    
-                    {event.stage === 'registration' && (
-                      <button 
-                        className={`register-btn ${!isAuthenticated ? 'disabled' : ''}`}
-                        onClick={() => handleRegisterEvent(event.id)}
-                        disabled={!isAuthenticated}
-                        title={!isAuthenticated ? "Log in to participate" : ""}
-                      >
-                        {isAuthenticated ? '🚀 Join' : '🔐 Log in to participate'}
-                      </button>
-                    )}
-                  </div>
+            <div className="events-table-container">
+              <div className="events-table">
+                <div className="table-header">
+                  <div className="header-cell header-title">Event</div>
+                  <div className="header-cell header-date">Date</div>
+                  <div className="header-cell header-location">Location</div>
+                  <div className="header-cell header-stage">Stage</div>
+                  <div className="header-cell header-participants">Participants</div>
+                  <div className="header-cell header-actions">Actions</div>
                 </div>
-              ))}
+                
+                <div className="table-body">
+                  {events.map((event) => (
+                    <div key={event.id} className="table-row">
+                      <div className="table-cell cell-title">
+                        <div className="event-title-section">
+                          <h3>{event.title}</h3>
+                          <p className="event-description-preview">{event.description}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="table-cell cell-date">
+                        <span className="cell-label">Date:</span>
+                        {(() => {
+                          try {
+                            const date = new Date(event.date);
+                            return isNaN(date.getTime()) 
+                              ? 'TBD' 
+                              : date.toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                });
+                          } catch {
+                            return 'TBD';
+                          }
+                        })()}
+                      </div>
+                      
+                      <div className="table-cell cell-location">
+                        <span className="cell-label">Location:</span>
+                        <span className="location-text">{event.location}</span>
+                      </div>
+                      
+                      <div className="table-cell cell-stage">
+                        <span className="cell-label">Stage:</span>
+                        <span className={`badge badge-${
+                          event.stage === 'registration' ? 'success' : 
+                          event.stage === 'attachment_upload' ? 'info' : 
+                          event.stage === 'voting' ? 'warning' : 'primary'
+                        }`}>
+                          {getStageDisplayName(event.stage)}
+                        </span>
+                      </div>
+                      
+                      <div className="table-cell cell-participants">
+                        <span className="cell-label">Participants:</span>
+                        <span className="participants-count">
+                          {event.participant_ids?.length || 0}
+                          {event.max_participants && ` / ${event.max_participants}`}
+                        </span>
+                      </div>
+                      
+                      <div className="table-cell cell-actions">
+                        <div className="action-buttons">
+                          <button 
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setSelectedEvent(event)}
+                            title="View full details"
+                          >
+                            Details
+                          </button>
+                          
+                          {event.stage === 'registration' && (
+                            <button 
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleRegisterEvent(event.id)}
+                              disabled={!isAuthenticated}
+                              title={!isAuthenticated ? "Log in to participate" : "Join this event"}
+                            >
+                              Join
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
