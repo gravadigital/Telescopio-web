@@ -35,10 +35,10 @@ const VotingSection: React.FC<VotingSectionProps> = ({ eventId, userId, onVoteSu
   if (hasVoted) {
     return (
       <div className="voting-section completed">
-        <h3>🗳️ Votación</h3>
+        <h3>🗳️ Voting</h3>
         <div className="vote-completed">
-          <p>✅ ¡Gracias por votar!</p>
-          <p>Tu voto ha sido registrado correctamente.</p>
+          <p>✅ Thanks for voting!</p>
+          <p>Your vote has been recorded successfully.</p>
         </div>
       </div>
     );
@@ -46,8 +46,8 @@ const VotingSection: React.FC<VotingSectionProps> = ({ eventId, userId, onVoteSu
 
   return (
     <div className="voting-section">
-      <h3>🗳️ Votación del Evento</h3>
-      <p>Por favor, vota tu preferencia para este evento:</p>
+      <h3>🗳️ Event Voting</h3>
+      <p>Please vote your preference for this event:</p>
       
       <div className="vote-options">
         <div 
@@ -55,7 +55,7 @@ const VotingSection: React.FC<VotingSectionProps> = ({ eventId, userId, onVoteSu
           onClick={() => setSelectedVote('yes')}
         >
           <div className="vote-icon">👍</div>
-          <div className="vote-label">Sí, participaré</div>
+          <div className="vote-label">Yes, I'll participate</div>
         </div>
         
         <div 
@@ -63,7 +63,7 @@ const VotingSection: React.FC<VotingSectionProps> = ({ eventId, userId, onVoteSu
           onClick={() => setSelectedVote('maybe')}
         >
           <div className="vote-icon">🤔</div>
-          <div className="vote-label">Tal vez</div>
+          <div className="vote-label">Maybe</div>
         </div>
         
         <div 
@@ -71,7 +71,7 @@ const VotingSection: React.FC<VotingSectionProps> = ({ eventId, userId, onVoteSu
           onClick={() => setSelectedVote('no')}
         >
           <div className="vote-icon">👎</div>
-          <div className="vote-label">No puedo participar</div>
+          <div className="vote-label">I can't participate</div>
         </div>
       </div>
 
@@ -81,7 +81,7 @@ const VotingSection: React.FC<VotingSectionProps> = ({ eventId, userId, onVoteSu
           onClick={handleVoteSubmit}
           disabled={voting}
         >
-          {voting ? 'Enviando voto...' : 'Confirmar Voto'}
+          {voting ? 'Submitting vote...' : 'Confirm Vote'}
         </button>
       )}
     </div>
@@ -119,10 +119,10 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
     try {
       await EventService.updateEventStage(event.id, newStage);
       setCurrentStage(newStage);
-      setSuccess(`Etapa actualizada a: ${getStageDisplayName(newStage)}`);
+      setSuccess(`Stage updated to: ${getStageDisplayName(newStage)}`);
     } catch (err) {
       console.error('Error updating event stage:', err);
-      setError('Error al actualizar la etapa del evento');
+      setError('Error updating event stage');
     } finally {
       setStageLoading(false);
     }
@@ -136,7 +136,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
 
   const handleRegister = async (): Promise<void> => {
     if (!isAuthenticated || !user) {
-      setError('Debes iniciar sesión para registrarte');
+      setError('You must log in to register');
       return;
     }
 
@@ -146,13 +146,13 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
 
     try {
       await EventService.registerForEvent(event.id, user.id);
-      setSuccess('¡Te has registrado exitosamente en el evento!');
+      setSuccess('You have successfully registered for the event!');
       setIsUserRegistered(true); 
       joinEvent(event.id); 
       onRegistered && onRegistered();
     } catch (err) {
       console.error('Error registering for event:', err);
-      setSuccess('¡Te has registrado exitosamente en el evento! (modo demo)');
+      setSuccess('You have successfully registered for the event! (demo mode)');
       setIsUserRegistered(true); 
       joinEvent(event.id); 
       onRegistered && onRegistered();
@@ -165,7 +165,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        setError('El archivo no puede superar los 10MB');
+        setError('File cannot exceed 10MB');
         return;
       }
 
@@ -176,7 +176,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       ];
       if (!allowedTypes.includes(file.type)) {
-        setError('Tipo de archivo no permitido. Usa: JPEG, PNG, GIF, WebP, PDF, TXT, DOC, DOCX');
+        setError('File type not allowed. Use: JPEG, PNG, GIF, WebP, PDF, TXT, DOC, DOCX');
         return;
       }
 
@@ -187,12 +187,12 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
 
   const handleUploadAttachment = async (): Promise<void> => {
     if (!selectedFile) {
-      setError('Selecciona un archivo primero');
+      setError('Select a file first');
       return;
     }
 
     if (!user) {
-      setError('Usuario no autenticado');
+      setError('User not authenticated');
       return;
     }
 
@@ -202,14 +202,14 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
 
     try {
       await AttachmentService.uploadAttachment(event.id, user.id, selectedFile);
-      setSuccess('¡Archivo subido exitosamente!');
+      setSuccess('File uploaded successfully!');
       setSelectedFile(null);
       
       const fileInput = document.getElementById('attachment-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
     } catch (err) {
       console.error('Error uploading file:', err);
-      setSuccess('¡Archivo subido exitosamente! (modo demo)');
+      setSuccess('File uploaded successfully! (demo mode)');
       setSelectedFile(null);
       
       const fileInput = document.getElementById('attachment-file') as HTMLInputElement;
@@ -221,10 +221,10 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
 
   const getStageDisplayName = (stage: Event['stage']): string => {
     const stages: Record<Event['stage'], string> = {
-      'registration': 'Registro Abierto',
-      'attachment_upload': 'Subida de Archivos',
-      'voting': 'Votación',
-      'completed': 'Completado'
+      'registration': 'Open Registration',
+      'attachment_upload': 'File Upload',
+      'voting': 'Voting',
+      'completed': 'Completed'
     };
     return stages[stage] || stage;
   };
@@ -233,14 +233,14 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
     <div className="event-detail-overlay">
       <div className="event-detail-modal">
         <div className="event-detail-header">
-          <h2>{event.title || `Evento ${event.id}`}</h2>
+          <h2>{event.title || `Event ${event.id}`}</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
         <div className="event-detail-content">
           <div className="event-info">
             <div className="info-item">
-              <strong>Estado:</strong> 
+              <strong>Status:</strong> 
               <span className={`stage-badge stage-${currentStage}`}>
                 {getStageDisplayName(currentStage)}
               </span>
@@ -249,45 +249,45 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
                   className="stage-advance-btn"
                   onClick={() => handleStageChange(getNextStage(currentStage)!)}
                   disabled={stageLoading}
-                  title={`Avanzar a: ${getStageDisplayName(getNextStage(currentStage)!)}`}
+                  title={`Advance to: ${getStageDisplayName(getNextStage(currentStage)!)}`}
                 >
-                  {stageLoading ? '⏳' : '▶️'} Avanzar Etapa
+                  {stageLoading ? '⏳' : '▶️'} Advance Stage
                 </button>
               )}
             </div>
 
             {event.description && (
               <div className="info-item">
-                <strong>Descripción:</strong> {event.description}
+                <strong>Description:</strong> {event.description}
               </div>
             )}
 
             {event.date && (
               <div className="info-item">
-                <strong>Fecha:</strong> {new Date(event.date).toLocaleDateString()}
+                <strong>Date:</strong> {new Date(event.date).toLocaleDateString()}
               </div>
             )}
 
             {event.location && (
               <div className="info-item">
-                <strong>Ubicación:</strong> {event.location}
+                <strong>Location:</strong> {event.location}
               </div>
             )}
 
             {event.participant_ids && event.participant_ids.length > 0 && (
               <div className="info-item participants-info">
-                <strong>Participantes:</strong> {event.participant_ids.length}
+                <strong>Participants:</strong> {event.participant_ids.length}
                 <button 
                   className="view-participants-btn"
                   onClick={() => setShowParticipants(true)}
                 >
-                  👥 Ver participantes
+                  👥 View participants
                 </button>
               </div>
             )}
           </div>
 
-          {/* Mensajes de estado */}
+          {/* Status messages */}
           {error && (
             <div className="message error-message">
               {error}
@@ -300,39 +300,39 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
             </div>
           )}
 
-          {/* Acciones según el estado del evento y usuario */}
+          {/* Actions based on event and user status */}
           <div className="event-actions">
             {!isAuthenticated && (
               <div className="auth-required">
-                <p>Debes iniciar sesión para participar en este evento</p>
+                <p>You must log in to participate in this event</p>
               </div>
             )}
 
             {canRegister && (
               <div className="register-section">
-                <h3>Registrarse en el Evento</h3>
-                <p>¡Únete a este evento y participa!</p>
+                <h3>Register for Event</h3>
+                <p>Join this event and participate!</p>
                 <button 
                   className="primary-btn"
                   onClick={handleRegister}
                   disabled={loading}
                 >
-                  {loading ? 'Registrando...' : 'Registrarse'}
+                  {loading ? 'Registering...' : 'Register'}
                 </button>
               </div>
             )}
 
             {isUserRegistered && event.stage === 'registration' && (
               <div className="registered-info">
-                <p>✅ Ya estás registrado en este evento</p>
-                <p>Espera a que se abra la fase de subida de archivos.</p>
+                <p>✅ You are already registered for this event</p>
+                <p>Wait for the file upload phase to open.</p>
               </div>
             )}
 
             {canUploadAttachment && (
               <div className="upload-section">
-                <h3>Subir tu Participación</h3>
-                <p>Sube tu archivo para participar en el evento</p>
+                <h3>Upload Your Participation</h3>
+                <p>Upload your file to participate in the event</p>
                 
                 <div className="file-upload">
                   <input
@@ -344,8 +344,8 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
                   
                   {selectedFile && (
                     <div className="file-preview">
-                      <p><strong>Archivo seleccionado:</strong> {selectedFile.name}</p>
-                      <p><strong>Tamaño:</strong> {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <p><strong>Selected file:</strong> {selectedFile.name}</p>
+                      <p><strong>Size:</strong> {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                   )}
                   
@@ -354,15 +354,15 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
                     onClick={handleUploadAttachment}
                     disabled={!selectedFile || uploadLoading}
                   >
-                    {uploadLoading ? 'Subiendo...' : 'Subir Archivo'}
+                    {uploadLoading ? 'Uploading...' : 'Upload File'}
                   </button>
                 </div>
                 
                 <div className="upload-info">
-                  <h4>Requisitos del archivo:</h4>
+                  <h4>File requirements:</h4>
                   <ul>
-                    <li>Tamaño máximo: 10MB</li>
-                    <li>Formatos permitidos: JPEG, PNG, GIF, PDF, TXT, DOC, DOCX</li>
+                    <li>Maximum size: 10MB</li>
+                    <li>Allowed formats: JPEG, PNG, GIF, PDF, TXT, DOC, DOCX</li>
                   </ul>
                 </div>
               </div>
@@ -372,21 +372,21 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
               <VotingSection 
                 eventId={event.id}
                 userId={user?.id || ''}
-                onVoteSubmitted={() => setSuccess('¡Tu voto ha sido registrado!')}
+                onVoteSubmitted={() => setSuccess('Your vote has been recorded!')}
               />
             )}
 
             {isUserRegistered && currentStage === 'completed' && (
               <div className="results-info">
-                <p>🏆 Los resultados ya están disponibles</p>
-                <button className="secondary-btn">Ver Resultados</button>
+                <p>🏆 Results are now available</p>
+                <button className="secondary-btn">View Results</button>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Modal de participantes */}
+      {/* Participants modal */}
       {showParticipants && (
         <Participants
           eventId={event.id}

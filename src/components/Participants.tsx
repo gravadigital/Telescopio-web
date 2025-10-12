@@ -23,9 +23,9 @@ const Participants: React.FC<ParticipantsProps> = ({ eventId, eventTitle, onClos
       setParticipants(participantsData);
     } catch (err) {
       console.error('Error fetching participants:', err);
-      setError('Error al cargar los participantes');
+      setError('Error loading participants');
       
-      // Fallback con datos mock para demostración
+      // Fallback with mock data for demo
       const mockParticipants: User[] = [
         {
           id: 'user_1',
@@ -64,9 +64,9 @@ const Participants: React.FC<ParticipantsProps> = ({ eventId, eventTitle, onClos
 
   const getRoleDisplayName = (role: User['role']): string => {
     const roles: Record<User['role'], string> = {
-      'participant': 'Participante',
-      'organizer': 'Organizador',
-      'admin': 'Administrador'
+      'participant': 'Participant',
+      'organizer': 'Organizer',
+      'admin': 'Administrator'
     };
     return roles[role] || role;
   };
@@ -84,7 +84,7 @@ const Participants: React.FC<ParticipantsProps> = ({ eventId, eventTitle, onClos
     <div className="participants-overlay">
       <div className="participants-modal">
         <div className="participants-header">
-          <h2>👥 Participantes del Evento</h2>
+          <h2>👥 Event Participants</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
         
@@ -95,7 +95,7 @@ const Participants: React.FC<ParticipantsProps> = ({ eventId, eventTitle, onClos
         {loading && (
           <div className="participants-loading">
             <div className="loading-spinner"></div>
-            <p>Cargando participantes...</p>
+            <p>Loading participants...</p>
           </div>
         )}
 
@@ -103,22 +103,22 @@ const Participants: React.FC<ParticipantsProps> = ({ eventId, eventTitle, onClos
           <div className="participants-error">
             <p>❌ {error}</p>
             <button onClick={fetchParticipants} className="retry-btn">
-              🔄 Reintentar
+              🔄 Retry
             </button>
           </div>
         )}
 
         {!loading && !error && participants.length === 0 && (
           <div className="participants-empty">
-            <p>🌌 No hay participantes registrados aún.</p>
-            <p>¡Sé el primero en unirte a este evento astronómico!</p>
+            <p>🌌 No participants registered yet.</p>
+            <p>Be the first to join this astronomical event!</p>
           </div>
         )}
 
         {!loading && participants.length > 0 && (
           <div className="participants-content">
             <div className="participants-stats">
-              <p>📊 <strong>{participants.length}</strong> participante{participants.length !== 1 ? 's' : ''} registrado{participants.length !== 1 ? 's' : ''}</p>
+              <p>📊 <strong>{participants.length}</strong> participant{participants.length !== 1 ? 's' : ''} registered</p>
             </div>
             
             <div className="participants-list">
@@ -149,7 +149,7 @@ const Participants: React.FC<ParticipantsProps> = ({ eventId, eventTitle, onClos
 
         <div className="participants-actions">
           <button className="close-modal-btn" onClick={onClose}>
-            Cerrar
+            Close
           </button>
         </div>
       </div>
