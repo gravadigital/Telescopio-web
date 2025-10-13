@@ -1,7 +1,9 @@
 import React, { JSX, useState } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
 import './App.css';
 import Events from './components/Events';
 import Auth from './components/Auth';
+import EventDetailPage from './pages/EventDetailPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Importar utilidades de testing en desarrollo
@@ -9,13 +11,75 @@ if (process.env.NODE_ENV === 'development') {
   import('./utils/testData.js');
 }
 
-type ViewType = 'home' | 'events';
 type AuthAction = 'login' | 'register' | 'logout';
 
+// Home Page Component
+function HomePage(): JSX.Element {
+  return (
+    <main className="main-content">
+      {/* Section 1: WHY? */}
+      <section id="why" className="section">
+        <div className="section-container">
+          <h1 className="section-title">WHY?</h1>
+          <div className="section-content">
+            <p>This is the WHY section where we explain the purpose and motivation behind Telescopio.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 2: HOW? */}
+      <section id="how" className="section">
+        <div className="section-container">
+          <h1 className="section-title">HOW?</h1>
+          <div className="section-content">
+            <p>This is the HOW section where we explain the process and methodology of Telescopio.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 3: DEMO */}
+      <section id="demo" className="section">
+        <div className="section-container">
+          <h1 className="section-title">DEMO</h1>
+          <div className="section-content">
+            <p>This is the DEMO section where we showcase the capabilities of Telescopio.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+// Events List Page Component
+function EventsPage(): JSX.Element {
+  const navigate = useNavigate();
+
+  const handleViewEventDetail = (eventId: string): void => {
+    navigate(`/events/${eventId}`);
+  };
+
+  return <Events onViewEventDetail={handleViewEventDetail} />;
+}
+
+// Event Detail Page Wrapper Component
+function EventDetailPageWrapper(): JSX.Element {
+  const { eventId } = useParams<{ eventId: string }>();
+  const navigate = useNavigate();
+
+  const handleBack = (): void => {
+    navigate('/events');
+  };
+
+  if (!eventId) {
+    return <div>Event not found</div>;
+  }
+
+  return <EventDetailPage eventId={eventId} onBack={handleBack} />;
+}
+
+// Main App Content with Navigation
 function AppContent(): JSX.Element {
-  const [currentView, setCurrentView] = useState<ViewType>('home');
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-  
   const { user, logout, isAuthenticated } = useAuth();
 
   const handleAuthAction = (action: AuthAction): void => {
@@ -26,60 +90,20 @@ function AppContent(): JSX.Element {
     }
   };
 
-  const renderContent = (): JSX.Element => {
-    switch(currentView) {
-      case 'events':
-        return <Events />;
-      case 'home':
-      default:
-        return (
-          <main className="main-content">
-            {/* Section 1: WHY? */}
-            <section id="why" className="section">
-              <div className="section-container">
-                <h1 className="section-title">WHY?</h1>
-                <div className="section-content">
-                  <p>This is the WHY section where we explain the purpose and motivation behind Telescopio.</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Section 2: HOW? */}
-            <section id="how" className="section">
-              <div className="section-container">
-                <h1 className="section-title">HOW?</h1>
-                <div className="section-content">
-                  <p>This is the HOW section where we explain the process and methodology of Telescopio.</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Section 3: DEMO */}
-            <section id="demo" className="section">
-              <div className="section-container">
-                <h1 className="section-title">DEMO</h1>
-                <div className="section-content">
-                  <p>This is the DEMO section where we showcase the capabilities of Telescopio.</p>
-                </div>
-              </div>
-            </section>
-          </main>
-        );
-    }
-  };
-
   return (
     <div className="App">
       {/* Navbar */}
       <nav className="navbar">
         <div className="nav-container">
           <div className="nav-logo">
-            <h2 onClick={() => setCurrentView('home')} style={{ cursor: 'pointer' }}>TELESCOPIO</h2>
+            <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <h2 style={{ cursor: 'pointer' }}>TELESCOPIO</h2>
+            </Link>
           </div>
           <div className="nav-menu">
-            <button onClick={() => setCurrentView('home')} className="nav-link">About</button>
-            <button onClick={() => setCurrentView('home')} className="nav-link">See Demo</button>
-            <button onClick={() => setCurrentView('events')} className="nav-link">Events</button>
+            <Link to="/" className="nav-link">About</Link>
+            <Link to="/" className="nav-link">See Demo</Link>
+            <Link to="/events" className="nav-link">Events</Link>
             
             {isAuthenticated ? (
               <>
@@ -96,7 +120,12 @@ function AppContent(): JSX.Element {
         </div>
       </nav>
 
-      {renderContent()}
+      {/* Routes */}
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/events" element={<EventsPage />} />
+        <Route path="/events/:eventId" element={<EventDetailPageWrapper />} />
+      </Routes>
 
       {showAuthModal && (
         <Auth onClose={() => setShowAuthModal(false)} />
@@ -108,7 +137,9 @@ function AppContent(): JSX.Element {
 function App(): JSX.Element {
   return (
     <AuthProvider>
-      <AppContent />
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </AuthProvider>
   );
 }

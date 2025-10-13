@@ -28,9 +28,12 @@ export const EventService = {
     try {
       const response = await apiRequest<{ data: any[] }>(API_CONFIG.ENDPOINTS.EVENTS);
       
-      if (!response || !response.data) {
+      if (!response || !response.data || !Array.isArray(response.data)) {
+        console.warn("Invalid response format from API:", response);
         throw new Error("No data received");
       }
+      
+      console.log("✅ Events loaded from backend:", response.data.length);
       
       const events = response.data.map(event => ({
         id: event.id,
@@ -43,32 +46,48 @@ export const EventService = {
           ? event.status as "completed" | "active" | "cancelled"
           : "active" as const,
         stage: (event.stage as "registration" | "attachment_upload" | "voting" | "completed") || "registration",
-        participantIDs: [],
+        participantIDs: event.participant_ids || [],
         voteCount: {
           yes: 0,
           maybe: 0,
           no: 0
         },
-        attachmentCount: 0
+        attachmentCount: event.attachment_count || 0,
+        created_at: event.created_at,
+        updated_at: event.updated_at
       }));
       
       return events;
     } catch (error) {
-      console.warn("Failed to fetch events from API, using fallback:", error);
+      console.warn("⚠️ Failed to fetch events from API, using fallback:", error);
       
+      // Fallback con los IDs reales del backend para que funcione en modo offline
       return [
         {
-          id: "demo_event_1",
-          title: "Distributed Telescope Time Allocation 2026",
-          description: "Annual telescope time allocation using distributed voting system based on Merrifield & Saari (2009) mathematical framework for fair and efficient proposal evaluation.",
-          date: "2026-01-13",
-          location: "Ubicación por determinar",
+          id: "68a94135-77f9-42a8-9b43-fea50d6ca524",
+          title: "Asignación de Tiempo de Telescopio Q2 2025",
+          description: "Evaluación de propuestas para tiempo de telescopio destinado al estudio de galaxias con corrimiento al rojo z > 2.",
+          date: "2025-09-23",
+          location: "Observatorio Virtual",
           organizer: "Sistema Telescopio",
           status: "active" as const,
-          stage: "registration" as const,
+          stage: "voting" as const,
           participantIDs: [],
           voteCount: { yes: 5, maybe: 2, no: 0 },
           attachmentCount: 3
+        },
+        {
+          id: "660e8400-e29b-41d4-a716-446655440000",
+          title: "Distributed Telescope Time Allocation 2026",
+          description: "Annual telescope time allocation using distributed voting system based on Merrifield & Saari (2009) mathematical framework for fair and efficient proposal evaluation.",
+          date: "2026-01-15",
+          location: "International Observatory Network",
+          organizer: "Sistema Telescopio",
+          status: "active" as const,
+          stage: "completed" as const,
+          participantIDs: [],
+          voteCount: { yes: 8, maybe: 1, no: 0 },
+          attachmentCount: 5
         }
       ];
     }
@@ -126,27 +145,47 @@ export const EventService = {
 
   async getEventById(id: string): Promise<Event | null> {
     try {
-      const response = await apiRequest<any>(`${API_CONFIG.ENDPOINTS.EVENTS}/${id}`);
+      const response = await apiRequest<{ data: any }>(`${API_CONFIG.ENDPOINTS.EVENTS}/${id}`);
       
-      if (!response) {
-        return null;
+      if (!response || !response.data) {
+        throw new Error("No response from API");
       }
 
+      const event = response.data;
+      console.log("✅ Event details loaded from backend:", event.id);
+
       return {
-        id: response.id,
-        title: response.name || response.title,
-        description: response.description,
-        date: response.start_date || response.date,
-        location: response.location || "Ubicación por determinar",
-        organizer: response.organizer || "Organizador por determinar",
-        status: response.status || "active",
-        stage: response.stage || "registration",
-        participantIDs: response.participant_ids || [],
-        voteCount: response.vote_count || { yes: 0, maybe: 0, no: 0 },
-        attachmentCount: response.attachment_count || 0
+        id: event.id,
+        title: event.name || event.title,
+        description: event.description,
+        date: event.start_date || event.date,
+        location: event.location || "Ubicación por determinar",
+        organizer: event.organizer || "Organizador por determinar",
+        status: event.status || "active",
+        stage: event.stage || "registration",
+        participantIDs: event.participant_ids || [],
+        voteCount: event.vote_count || { yes: 0, maybe: 0, no: 0 },
+        attachmentCount: event.attachment_count || 0,
+        created_at: event.created_at,
+        updated_at: event.updated_at
       };
     } catch (error) {
-      console.error("Failed to fetch event by ID:", error);
+      console.warn("⚠️ Failed to fetch event by ID from API, checking fallback data:", error);
+      
+      // Try to find event in the fallback/demo data
+      try {
+        const allEvents = await this.getAllEvents();
+        const event = allEvents.find(e => e.id === id);
+        
+        if (event) {
+          console.log("📦 Found event in fallback data:", event.title);
+          return event;
+        }
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
+      }
+      
+      console.error("❌ Event not found:", id);
       return null;
     }
   },
@@ -189,18 +228,21 @@ export const EventService = {
 
   async getEventParticipants(eventId: string): Promise<User[]> {
     try {
-      const response = await apiRequest<{ data: any[] }>(
+      const response = await apiRequest<{ count: number; data: { participants: any[] } }>(
         API_CONFIG.ENDPOINTS.EVENT_PARTICIPANTS(eventId)
       );
 
-      return response.data?.map(participant => ({
+      // El backend devuelve { count, data: { event, participants } }
+      const participants = response.data?.participants || [];
+
+      return participants.map(participant => ({
         id: participant.id,
         name: participant.name,
         email: participant.email,
         role: participant.role || "participant",
         joinedEventIDs: participant.joined_event_ids || [],
         createdEventIDs: participant.created_event_ids || []
-      })) || [];
+      }));
     } catch (error) {
       console.error("Failed to fetch event participants:", error);
       return [];

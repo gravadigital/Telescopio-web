@@ -123,7 +123,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreate, 
   );
 };
 
-const Events: React.FC<EventsProps> = () => {
+interface EventsComponentProps extends EventsProps {
+  onViewEventDetail?: (eventId: string) => void;
+}
+
+const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -350,7 +354,13 @@ const Events: React.FC<EventsProps> = () => {
                         <div className="action-buttons">
                           <button 
                             className="btn btn-secondary btn-sm"
-                            onClick={() => setSelectedEvent(event)}
+                            onClick={() => {
+                              if (onViewEventDetail) {
+                                onViewEventDetail(event.id);
+                              } else {
+                                setSelectedEvent(event);
+                              }
+                            }}
                             title="View full details"
                           >
                             Details
