@@ -13,30 +13,39 @@ export const useAuth = (): AuthContextType => {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check if there's a saved user in localStorage
+    // Check if there's a saved user and token in localStorage
     const savedUser = localStorage.getItem('telescopio_user');
-    if (savedUser) {
+    const savedToken = localStorage.getItem('telescopio_token');
+
+    if (savedUser && savedToken) {
       try {
         setUser(JSON.parse(savedUser) as User);
+        setToken(savedToken);
       } catch (error) {
         console.error('Error parsing saved user:', error);
         localStorage.removeItem('telescopio_user');
+        localStorage.removeItem('telescopio_token');
       }
     }
     setLoading(false);
   }, []);
 
-  const login = (userData: User): void => {
+  const login = (userData: User, authToken: string): void => {
     setUser(userData);
+    setToken(authToken);
     localStorage.setItem('telescopio_user', JSON.stringify(userData));
+    localStorage.setItem('telescopio_token', authToken);
   };
 
   const logout = (): void => {
     setUser(null);
+    setToken(null);
     localStorage.removeItem('telescopio_user');
+    localStorage.removeItem('telescopio_token');
   };
 
   const updateUser = (updatedData: Partial<User>): void => {
@@ -62,6 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     user,
+    token,
     login,
     logout,
     updateUser,

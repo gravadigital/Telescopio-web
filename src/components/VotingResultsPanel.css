@@ -1,0 +1,228 @@
+.voting-results-panel {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 1rem;
+}
+
+.voting-results-panel h2 {
+  margin-bottom: 1.5rem;
+  color: #2c3e50;
+  text-align: center;
+  font-size: 2rem;
+}
+
+.voting-results-panel .loading,
+.voting-results-panel .no-results {
+  text-align: center;
+  padding: 3rem;
+  color: #7f8c8d;
+  font-size: 1.1rem;
+}
+
+.voting-results-panel .error-message {
+  background: #fee;
+  border-left: 4px solid #e74c3c;
+  color: #c0392b;
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.voting-results-panel .statistics-box {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.voting-results-panel .statistics-box h3 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  font-size: 1.25rem;
+}
+
+.voting-results-panel .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.voting-results-panel .stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.voting-results-panel .stat-label {
+  color: #7f8c8d;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.voting-results-panel .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.voting-results-panel .ranking-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.voting-results-panel .toggle-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.voting-results-panel .toggle-btn:hover {
+  border-color: #3498db;
+  color: #3498db;
+}
+
+.voting-results-panel .toggle-btn.active {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.voting-results-panel .ranking-table-container {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.voting-results-panel .ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.voting-results-panel .ranking-table th,
+.voting-results-panel .ranking-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.voting-results-panel .ranking-table th {
+  background: #34495e;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.voting-results-panel .ranking-table tbody tr {
+  transition: background 0.2s;
+}
+
+.voting-results-panel .ranking-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.voting-results-panel .ranking-table tbody tr.top-1 {
+  background: #fff3cd;
+}
+
+.voting-results-panel .ranking-table tbody tr.top-1:hover {
+  background: #ffe8a1;
+}
+
+.voting-results-panel .ranking-table tbody tr.top-2 {
+  background: #e2e3e5;
+}
+
+.voting-results-panel .ranking-table tbody tr.top-2:hover {
+  background: #d6d8db;
+}
+
+.voting-results-panel .ranking-table tbody tr.top-3 {
+  background: #d6e9c6;
+}
+
+.voting-results-panel .ranking-table tbody tr.top-3:hover {
+  background: #c3e6b0;
+}
+
+.voting-results-panel .rank-cell {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #2c3e50;
+}
+
+.voting-results-panel .filename-cell {
+  font-weight: 500;
+  color: #34495e;
+}
+
+.voting-results-panel .info-box {
+  background: #e8f4f8;
+  border-left: 4px solid #3498db;
+  padding: 1.5rem;
+  border-radius: 4px;
+  margin-top: 2rem;
+}
+
+.voting-results-panel .info-box h4 {
+  margin: 0 0 0.75rem 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.voting-results-panel .info-box p {
+  margin: 0.75rem 0;
+  color: #34495e;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.voting-results-panel .info-box strong {
+  color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+  .voting-results-panel {
+    padding: 1.5rem;
+  }
+
+  .voting-results-panel h2 {
+    font-size: 1.5rem;
+  }
+
+  .voting-results-panel .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .voting-results-panel .ranking-controls {
+    flex-direction: column;
+  }
+
+  .voting-results-panel .toggle-btn {
+    width: 100%;
+  }
+
+  .voting-results-panel .ranking-table {
+    font-size: 0.875rem;
+  }
+
+  .voting-results-panel .ranking-table th,
+  .voting-results-panel .ranking-table td {
+    padding: 0.5rem;
+  }
+
+  .voting-results-panel .stat-value {
+    font-size: 1.5rem;
+  }
+}

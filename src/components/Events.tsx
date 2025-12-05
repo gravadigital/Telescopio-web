@@ -1,142 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Events.css';
-import EventDetail from './EventDetail';
 import { useAuth } from '../context/AuthContext';
 import { Event, EventsProps } from '../types';
 import { EventService, ApiHealthService } from '../services/api';
 
-interface CreateEventModalProps {
-  onClose: () => void;
-  onCreate: (eventData: {
-    name: string;
-    description: string;
-    date: string;
-    location?: string;
-    organizer?: string;
-  }) => Promise<void>;
-  creating: boolean;
-}
-
-const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreate, creating }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    date: '',
-    location: '',
-    organizer: ''
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onCreate(formData);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal">
-        <div className="modal-header">
-          <h2 className="modal-title">Create New Event</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="form-group">
-            <label className="form-label">Event Name:</label>
-            <input
-              className="form-input"
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              placeholder="e.g. Jupiter Observation 2026"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Description:</label>
-            <textarea
-              className="form-textarea"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-              placeholder="Describe the astronomical event..."
-              rows={4}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Start Date:</label>
-            <input
-              className="form-input"
-              type="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Location:</label>
-            <input
-              className="form-input"
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="Event location (optional)"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Organizer:</label>
-            <input
-              className="form-input"
-              type="text"
-              name="organizer"
-              value={formData.organizer}
-              onChange={handleChange}
-              placeholder="Organizer name (optional)"
-            />
-          </div>
-
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn btn-secondary">
-              Cancel
-            </button>
-            <button type="submit" disabled={creating} className="btn btn-primary">
-              {creating ? 'Creating...' : 'Create Event'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 interface EventsComponentProps extends EventsProps {
   onViewEventDetail?: (eventId: string) => void;
 }
 
 const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string>('');
-  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
-  const [creating, setCreating] = useState<boolean>(false);
-  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'all' | 'my'>('all');
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+
+  // Reload events when returning to /events page
+  useEffect(() => {
+    if (location.pathname === '/events') {
+      checkApiAndFetchEvents();
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     checkApiAndFetchEvents();
@@ -167,53 +56,21 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
   };
 
   const handleRegisterEvent = (eventId: string): void => {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
-      setSelectedEvent(event);
-    }
-  };
-
-  const handleEventRegistered = (): void => {
-    // Refresh event list after registration
-    checkApiAndFetchEvents();
+    // Navegar a la página de detalle del evento
+    navigate(`/events/${eventId}`);
   };
 
   const handleRefresh = (): void => {
     checkApiAndFetchEvents();
   };
 
-  const handleCreateEvent = async (eventData: {
-    name: string;
-    description: string;
-    date: string;
-    location?: string;
-    organizer?: string;
-  }): Promise<void> => {
-    setCreating(true);
-    setError(''); 
-    
-    try {
-      const newEvent = await EventService.createEvent(eventData);
-      setShowCreateModal(false);
-      
-      console.log('Event created successfully:', newEvent);
-      
-      await checkApiAndFetchEvents();
-      
-      setError(''); 
-      setSuccessMessage(`Event "${eventData.name}" created successfully!`);
-      setTimeout(() => setSuccessMessage(''), 5000); 
-            
-    } catch (error) {
-      console.error('Error creating event:', error);
-      setError('Error creating event. Please try again.');
-    } finally {
-      setCreating(false);
-    }
+  const handleCreateEvent = (): void => {
+    navigate('/events/create');
   };
 
   const getStageDisplayName = (stage: Event['stage']): string => {
     const stages: Record<Event['stage'], string> = {
+      'creation': 'Creation',
       'registration': 'Open Registration',
       'attachment_upload': 'File Upload',
       'voting': 'Voting',
@@ -222,7 +79,23 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
     return stages[stage] || stage;
   };
 
+  // Separate events into "my events" and "all events"
+  const myEvents = user ? events.filter(event => event.creator_id === user.id) : [];
+  const allEvents = events;
 
+  // Debug: Log user and events for troubleshooting
+  console.log('🔍 Events Debug:', {
+    userId: user?.id,
+    totalEvents: events.length,
+    myEventsCount: myEvents.length,
+    eventsWithCreatorId: events.filter(e => e.creator_id).map(e => ({
+      title: e.title,
+      creator_id: e.creator_id,
+      matches: e.creator_id === user?.id
+    }))
+  });
+
+  const displayEvents = activeTab === 'my' ? myEvents : allEvents;
 
   if (loading) {
     return (
@@ -244,18 +117,18 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
         <div className="events-content">
           <div className="events-header">
             <h1>Telescopio Events</h1>
-            
-            <div className="events-controls">              
-              <button 
+
+            <div className="events-controls">
+              <button
                 className="btn btn-warning btn-md"
-                onClick={() => setShowCreateModal(true)}
+                onClick={handleCreateEvent}
                 disabled={!isAuthenticated}
                 title={!isAuthenticated ? "Log in to create events" : ""}
               >
                 Create Event
               </button>
-              
-              <button 
+
+              <button
                 className="btn btn-secondary btn-md"
                 onClick={handleRefresh}
                 disabled={loading}
@@ -265,10 +138,21 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
             </div>
           </div>
 
-          {/* Success message */}
-          {successMessage && (
-            <div className="alert alert-success">
-              <p>{successMessage}</p>
+          {/* Tabs for My Events / All Events */}
+          {isAuthenticated && myEvents.length > 0 && (
+            <div className="events-tabs">
+              <button
+                className={`tab-button ${activeTab === 'all' ? 'active' : ''}`}
+                onClick={() => setActiveTab('all')}
+              >
+                All Events ({allEvents.length})
+              </button>
+              <button
+                className={`tab-button ${activeTab === 'my' ? 'active' : ''}`}
+                onClick={() => setActiveTab('my')}
+              >
+                My Events ({myEvents.length})
+              </button>
             </div>
           )}
 
@@ -281,10 +165,10 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
             </div>
           )}
           
-          {events.length === 0 && !loading && !error ? (
+          {displayEvents.length === 0 && !loading && !error ? (
             <div className="empty-state">
-              <p>No events available at this time.</p>
-              <p>Come back soon for new observation opportunities!</p>
+              <p>{activeTab === 'my' ? 'You have not created any events yet.' : 'No events available at this time.'}</p>
+              <p>{activeTab === 'my' ? 'Click "Create Event" to get started!' : 'Come back soon for new observation opportunities!'}</p>
             </div>
           ) : (
             <div className="events-table-container">
@@ -292,14 +176,13 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                 <div className="table-header">
                   <div className="header-cell header-title">Event</div>
                   <div className="header-cell header-date">Date</div>
-                  <div className="header-cell header-location">Location</div>
                   <div className="header-cell header-stage">Stage</div>
                   <div className="header-cell header-participants">Participants</div>
                   <div className="header-cell header-actions">Actions</div>
                 </div>
-                
+
                 <div className="table-body">
-                  {events.map((event) => (
+                  {displayEvents.map((event) => (
                     <div key={event.id} className="table-row">
                       <div className="table-cell cell-title">
                         <div className="event-title-section">
@@ -313,8 +196,8 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                         {(() => {
                           try {
                             const date = new Date(event.date);
-                            return isNaN(date.getTime()) 
-                              ? 'TBD' 
+                            return isNaN(date.getTime())
+                              ? 'TBD'
                               : date.toLocaleDateString('en-US', {
                                   year: 'numeric',
                                   month: 'short',
@@ -325,12 +208,7 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                           }
                         })()}
                       </div>
-                      
-                      <div className="table-cell cell-location">
-                        <span className="cell-label">Location:</span>
-                        <span className="location-text">{event.location}</span>
-                      </div>
-                      
+
                       <div className="table-cell cell-stage">
                         <span className="cell-label">Stage:</span>
                         <span className={`badge badge-${
@@ -352,29 +230,41 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                       
                       <div className="table-cell cell-actions">
                         <div className="action-buttons">
-                          <button 
+                          <button
                             className="btn btn-secondary btn-sm"
                             onClick={() => {
                               if (onViewEventDetail) {
                                 onViewEventDetail(event.id);
                               } else {
-                                setSelectedEvent(event);
+                                navigate(`/events/${event.id}`);
                               }
                             }}
                             title="View full details"
                           >
                             Details
                           </button>
-                          
-                          {event.stage === 'registration' && (
-                            <button 
-                              className="btn btn-primary btn-sm"
-                              onClick={() => handleRegisterEvent(event.id)}
-                              disabled={!isAuthenticated}
-                              title={!isAuthenticated ? "Log in to participate" : "Join this event"}
+
+                          {/* Show Manage button if user is the event creator */}
+                          {user && event.creator_id === user.id ? (
+                            <button
+                              className="btn btn-warning btn-sm"
+                              onClick={() => navigate(`/events/${event.id}/manage`)}
+                              title="Manage event stages and settings"
                             >
-                              Join
+                              Manage
                             </button>
+                          ) : (
+                            /* Show Join button for non-creators */
+                            event.stage === 'registration' && (
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handleRegisterEvent(event.id)}
+                                disabled={!isAuthenticated}
+                                title={!isAuthenticated ? "Log in to participate" : "Join this event"}
+                              >
+                                Join
+                              </button>
+                            )
                           )}
                         </div>
                       </div>
@@ -386,22 +276,6 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
           )}
         </div>
       </div>
-
-      {selectedEvent && (
-        <EventDetail
-          event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          onRegistered={handleEventRegistered}
-        />
-      )}
-
-      {showCreateModal && (
-        <CreateEventModal
-          onClose={() => setShowCreateModal(false)}
-          onCreate={handleCreateEvent}
-          creating={creating}
-        />
-      )}
     </>
   );
 };

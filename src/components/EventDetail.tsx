@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { EventDetailProps, Event } from '../types';
 import { EventService, AttachmentService, VoteService } from '../services/api';
 import Participants from './Participants';
+import VotingConfigurationPanel from './VotingConfigurationPanel';
+import RankingVotePanel from './RankingVotePanel';
+import VotingResultsPanel from './VotingResultsPanel';
 
 // Componente de votación
 interface VotingSectionProps {
@@ -98,6 +101,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
   const [showParticipants, setShowParticipants] = useState<boolean>(false);
   const [currentStage, setCurrentStage] = useState<Event['stage']>(event.stage);
   const [stageLoading, setStageLoading] = useState<boolean>(false);
+  const [votingConfigured, setVotingConfigured] = useState<boolean>(false);
   
   const { user, isAuthenticated, joinEvent } = useAuth();
 
@@ -145,17 +149,14 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
     setSuccess('');
 
     try {
-      await EventService.registerForEvent(event.id, user.id);
+      await EventService.registerForEvent(event.id, user.name, user.email);
       setSuccess('You have successfully registered for the event!');
-      setIsUserRegistered(true); 
-      joinEvent(event.id); 
+      setIsUserRegistered(true);
+      joinEvent(event.id);
       onRegistered && onRegistered();
     } catch (err) {
       console.error('Error registering for event:', err);
-      setSuccess('You have successfully registered for the event! (demo mode)');
-      setIsUserRegistered(true); 
-      joinEvent(event.id); 
-      onRegistered && onRegistered();
+      setError('Failed to register for the event. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -221,6 +222,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
 
   const getStageDisplayName = (stage: Event['stage']): string => {
     const stages: Record<Event['stage'], string> = {
+      'creation': 'Creation',
       'registration': 'Open Registration',
       'attachment_upload': 'File Upload',
       'voting': 'Voting',
@@ -265,12 +267,6 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
             {event.date && (
               <div className="info-item">
                 <strong>Date:</strong> {new Date(event.date).toLocaleDateString()}
-              </div>
-            )}
-
-            {event.location && (
-              <div className="info-item">
-                <strong>Location:</strong> {event.location}
               </div>
             )}
 
@@ -368,19 +364,40 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
               </div>
             )}
 
-            {isUserRegistered && currentStage === 'voting' && (
-              <VotingSection 
+            {/* Voting Stage - Organizador configura y participantes rankean */}
+            {currentStage === 'voting' && isOrganizer && !votingConfigured && (
+              <VotingConfigurationPanel
                 eventId={event.id}
-                userId={user?.id || ''}
-                onVoteSubmitted={() => setSuccess('Your vote has been recorded!')}
+                totalAttachments={event.attachmentCount || 0}
+                totalParticipants={event.participant_ids?.length || 0}
+                onConfigured={() => {
+                  setVotingConfigured(true);
+                  setSuccess('Voting system configured! Assignments generated successfully.');
+                }}
               />
             )}
 
-            {isUserRegistered && currentStage === 'completed' && (
-              <div className="results-info">
-                <p>🏆 Results are now available</p>
-                <button className="secondary-btn">View Results</button>
+            {currentStage === 'voting' && isUserRegistered && !isOrganizer && (
+              <RankingVotePanel
+                eventId={event.id}
+                participantId={user?.id || ''}
+                onVotesSubmitted={() => {
+                  setSuccess('Your rankings have been submitted successfully!');
+                }}
+              />
+            )}
+
+            {currentStage === 'voting' && isOrganizer && votingConfigured && (
+              <div className="voting-configured-info">
+                <h3>✅ Voting System Active</h3>
+                <p>Voting configuration has been created and assignments have been generated.</p>
+                <p>Participants can now rank their assigned attachments.</p>
               </div>
+            )}
+
+            {/* Completed Stage - Resultados MBC */}
+            {currentStage === 'completed' && (
+              <VotingResultsPanel eventId={event.id} />
             )}
           </div>
         </div>

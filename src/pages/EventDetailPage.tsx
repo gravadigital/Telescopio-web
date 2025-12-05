@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Event, User } from '../types';
-import { EventService, ApiHealthService } from '../services/api';
+import React, { useState, useEffect, ChangeEvent } from 'react';
+import { Event } from '../types';
+import { EventService, ApiHealthService, AttachmentService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import Participants from '../components/Participants';
+import VotingConfigurationPanel from '../components/VotingConfigurationPanel';
+import RankingVotePanel from '../components/RankingVotePanel';
+import VotingResultsPanel from '../components/VotingResultsPanel';
 import './EventDetailPage.css';
 
 interface EventDetailPageProps {
@@ -9,16 +14,31 @@ interface EventDetailPageProps {
 }
 
 const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) => {
+  const { user, isAuthenticated, joinEvent } = useAuth();
+
   const [event, setEvent] = useState<Event | null>(null);
-  const [participants, setParticipants] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'participants' | 'timeline'>('overview');
+  const [success, setSuccess] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadLoading, setUploadLoading] = useState<boolean>(false);
+  const [isUserRegistered, setIsUserRegistered] = useState<boolean>(false);
+  const [showParticipants, setShowParticipants] = useState<boolean>(false);
+  const [currentStage, setCurrentStage] = useState<Event['stage'] | null>(null);
+  const [stageLoading, setStageLoading] = useState<boolean>(false);
+  const [votingConfigured, setVotingConfigured] = useState<boolean>(false);
 
   useEffect(() => {
     fetchEventDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
+
+  useEffect(() => {
+    if (user && event) {
+      const userIsRegistered = user.joinedEventIDs.includes(event.id);
+      setIsUserRegistered(userIsRegistered);
+    }
+  }, [user, event]);
 
   const fetchEventDetails = async (): Promise<void> => {
     setLoading(true);
@@ -26,7 +46,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
 
     try {
       const isHealthy = await ApiHealthService.checkHealth();
-      
+
       if (!isHealthy) {
         console.warn('⚠️ API health check failed - backend may be unavailable');
         setError('Unable to connect to the server. Using cached data if available.');
@@ -34,20 +54,11 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
 
       // Fetch event
       const eventData = await EventService.getEventById(eventId);
-      
+
       if (eventData) {
         setEvent(eventData);
+        setCurrentStage(eventData.stage);
         setError(''); // Clear any previous errors if we got data
-        
-        // Fetch participants
-        try {
-          const participantsData = await EventService.getEventParticipants(eventId);
-          setParticipants(participantsData);
-        } catch (participantError) {
-          console.warn('Could not load participants:', participantError);
-          // Don't fail the whole page if participants fail to load
-          setParticipants([]);
-        }
       } else {
         setError(`Event with ID "${eventId}" was not found. It may have been deleted or the ID is incorrect.`);
       }
@@ -61,8 +72,114 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
     }
   };
 
+  const handleStageChange = async (newStage: Event['stage']): Promise<void> => {
+    if (!event) return;
+
+    setStageLoading(true);
+    setError('');
+
+    try {
+      await EventService.updateEventStage(event.id, newStage);
+      setCurrentStage(newStage);
+      setSuccess(`Stage updated to: ${getStageDisplayName(newStage)}`);
+    } catch (err) {
+      console.error('Error updating event stage:', err);
+      setError('Error updating event stage');
+    } finally {
+      setStageLoading(false);
+    }
+  };
+
+  const getNextStage = (stage: Event['stage']): Event['stage'] | null => {
+    const stageOrder: Event['stage'][] = ['registration', 'attachment_upload', 'voting', 'completed'];
+    const currentIndex = stageOrder.indexOf(stage);
+    return currentIndex < stageOrder.length - 1 ? stageOrder[currentIndex + 1] : null;
+  };
+
+  const handleRegister = async (): Promise<void> => {
+    if (!isAuthenticated || !user || !event) {
+      setError('You must log in to register');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await EventService.registerForEvent(event.id, user.name, user.email);
+      setSuccess('You have successfully registered for the event!');
+      setIsUserRegistered(true);
+      joinEvent(event.id);
+    } catch (err) {
+      console.error('Error registering for event:', err);
+      setError('Failed to register for the event. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError('File cannot exceed 10MB');
+        return;
+      }
+
+      const allowedTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'application/pdf', 'text/plain',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        setError('File type not allowed. Use: JPEG, PNG, GIF, WebP, PDF, TXT, DOC, DOCX');
+        return;
+      }
+
+      setSelectedFile(file);
+      setError('');
+    }
+  };
+
+  const handleUploadAttachment = async (): Promise<void> => {
+    if (!selectedFile || !event) {
+      setError('Select a file first');
+      return;
+    }
+
+    if (!user) {
+      setError('User not authenticated');
+      return;
+    }
+
+    setUploadLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await AttachmentService.uploadAttachment(event.id, user.id, selectedFile);
+      setSuccess('File uploaded successfully!');
+      setSelectedFile(null);
+
+      const fileInput = document.getElementById('attachment-file') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      setSuccess('File uploaded successfully! (demo mode)');
+      setSelectedFile(null);
+
+      const fileInput = document.getElementById('attachment-file') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
   const getStageDisplayName = (stage: Event['stage']): string => {
     const stages: Record<Event['stage'], string> = {
+      'creation': 'Creation',
       'registration': 'Open Registration',
       'attachment_upload': 'File Upload',
       'voting': 'Voting',
@@ -107,14 +224,14 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
           <button onClick={onBack} className="btn btn-secondary btn-sm" style={{ marginBottom: '20px' }}>
             ← Back to Events
           </button>
-          
+
           <div className="alert alert-danger">
             <h3 style={{ marginTop: 0 }}>⚠️ Unable to Load Event</h3>
             <p style={{ marginBottom: '20px' }}>{error || 'Event not found'}</p>
-            
-            <div style={{ 
-              padding: '15px', 
-              background: 'rgba(0,0,0,0.2)', 
+
+            <div style={{
+              padding: '15px',
+              background: 'rgba(0,0,0,0.2)',
               borderRadius: '8px',
               marginBottom: '20px',
               fontSize: '0.9rem',
@@ -122,7 +239,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
             }}>
               <strong>Event ID:</strong> {eventId}
             </div>
-            
+
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={onBack} className="btn btn-secondary">
                 ← Back to Events List
@@ -137,209 +254,215 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
     );
   }
 
-  // Si llegamos aquí, event existe (TypeScript lo infiere)
-  if (!event) {
-    return null; // Nunca debería pasar, pero TypeScript lo necesita
+  // Si llegamos aquí, event existe
+  if (!event || !currentStage) {
+    return null;
   }
+
+  const canRegister = currentStage === 'registration' && isAuthenticated && !isUserRegistered;
+  const canUploadAttachment = currentStage === 'attachment_upload' && isUserRegistered;
+  const isOrganizer = user?.role === 'organizer' || user?.role === 'admin';
+  const nextStage = getNextStage(currentStage);
 
   return (
     <div className="event-detail-page">
       <div className="event-detail-container">
         {/* Header */}
-        <div className="event-detail-header">
+        <div className="event-detail-page-header">
           <button onClick={onBack} className="btn btn-secondary btn-sm back-button">
             ← Back to Events
           </button>
-          
+
           <div className="event-header-content">
             <div className="event-title-row">
               <h1>{event.title}</h1>
-              <span className={`badge badge-${
-                event.stage === 'registration' ? 'success' :
-                event.stage === 'attachment_upload' ? 'info' :
-                event.stage === 'voting' ? 'warning' : 'primary'
-              }`}>
-                {getStageDisplayName(event.stage)}
-              </span>
+              <div className="header-badges">
+                <span className={`badge badge-${
+                  currentStage === 'registration' ? 'success' :
+                  currentStage === 'attachment_upload' ? 'info' :
+                  currentStage === 'voting' ? 'warning' : 'primary'
+                }`}>
+                  {getStageDisplayName(currentStage)}
+                </span>
+
+                {isOrganizer && nextStage && (
+                  <button
+                    className="stage-advance-btn"
+                    onClick={() => handleStageChange(nextStage)}
+                    disabled={stageLoading}
+                  >
+                    {stageLoading ? '⏳ Updating...' : `▶️ Advance Stage`}
+                  </button>
+                )}
+              </div>
             </div>
             <p className="event-subtitle">{event.description}</p>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon">👥</div>
-            <div className="stat-content">
-              <h3>{participants.length}</h3>
-              <p>Participants</p>
-            </div>
+        {/* Messages */}
+        {success && (
+          <div className="alert alert-success">
+            <p>{success}</p>
           </div>
-          
-          <div className="stat-card">
-            <div className="stat-icon">�</div>
-            <div className="stat-content">
-              <h3>{event.attachmentCount || 0}</h3>
-              <p>Attachments</p>
-            </div>
+        )}
+
+        {error && (
+          <div className="alert alert-danger">
+            <p>{error}</p>
           </div>
-          
-          <div className="stat-card">
-            <div className="stat-icon">�</div>
-            <div className="stat-content">
-              <h3>{new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</h3>
-              <p>Event Date</p>
+        )}
+
+        {/* Event Info */}
+        <div className="event-info-section">
+          <div className="info-grid">
+            <div className="info-card">
+              <label>📅 Date</label>
+              <p>{formatDate(event.date)}</p>
+            </div>
+            <div className="info-card">
+              <label>👥 Participants</label>
+              <p>
+                {event.participant_ids?.length || 0}
+                {event.max_participants && ` / ${event.max_participants}`}
+                {event.participant_ids && event.participant_ids.length > 0 && (
+                  <button
+                    className="view-participants-btn"
+                    onClick={() => setShowParticipants(!showParticipants)}
+                  >
+                    {showParticipants ? 'Hide' : 'View'}
+                  </button>
+                )}
+              </p>
+            </div>
+            <div className="info-card">
+              <label>👤 Organizer</label>
+              <p>{event.organizer || 'Not specified'}</p>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="tabs-container">
-          <div className="tabs">
-            <button
-              className={`tab ${activeTab === 'overview' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              📋 Overview
-            </button>
-            <button
-              className={`tab ${activeTab === 'participants' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('participants')}
-            >
-              👥 Participants ({participants.length})
-            </button>
-            <button
-              className={`tab ${activeTab === 'timeline' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('timeline')}
-            >
-              ⏱️ Timeline
-            </button>
-          </div>
-        </div>
+        {/* Participants Section */}
+        {showParticipants && (
+          <Participants
+            eventId={event.id}
+            eventTitle={event.title}
+            onClose={() => setShowParticipants(false)}
+          />
+        )}
 
-        {/* Tab Content */}
-        <div className="tab-content">
-          {activeTab === 'overview' && (
-            <div className="overview-content">
-              <div className="info-section">
-                <h3>Event Information</h3>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <label>Start Date</label>
-                    <p>{formatDate(event.date)}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>End Date</label>
-                    <p>To be determined</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Location</label>
-                    <p>{event.location || 'To be determined'}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Organizer</label>
-                    <p>{event.organizer || 'Not specified'}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Current Stage</label>
-                    <p>{getStageDisplayName(event.stage)}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Status</label>
-                    <p className="status-active">{event.status || 'Active'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="info-section">
-                <h3>Description</h3>
-                <p className="description-text">{event.description}</p>
-              </div>
-
-              {event.created_at && (
-                <div className="info-section">
-                  <h3>Timestamps</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <label>Created</label>
-                      <p>{formatDate(event.created_at)}</p>
-                    </div>
-                    {event.updated_at && (
-                      <div className="info-item">
-                        <label>Last Updated</label>
-                        <p>{formatDate(event.updated_at)}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+        {/* Stage-specific Actions */}
+        <div className="event-actions">
+          {!isAuthenticated && (
+            <div className="auth-required">
+              <p>Log in to participate in this event</p>
             </div>
           )}
 
-          {activeTab === 'participants' && (
-            <div className="participants-content">
-              {participants.length === 0 ? (
-                <div className="empty-state">
-                  <p>No participants registered yet.</p>
+          {/* Registration Stage */}
+          {currentStage === 'registration' && isAuthenticated && (
+            <div className="register-section">
+              {isUserRegistered ? (
+                <div className="registered-info">
+                  <h3>✅ You're Registered!</h3>
+                  <p>You've successfully registered for this event.</p>
+                  <p>Wait for the organizer to advance to the next stage.</p>
                 </div>
               ) : (
-                <div className="participants-list">
-                  {participants.map((participant) => (
-                    <div key={participant.id} className="participant-card">
-                      <div className="participant-avatar">
-                        {participant.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="participant-info">
-                        <h4>{participant.name}</h4>
-                        <p>{participant.email}</p>
-                        <span className="badge badge-info">{participant.role}</span>
-                      </div>
-                      <div className="participant-date">
-                        <small>Registered participant</small>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <h3>📝 Event Registration</h3>
+                  <p>Register to participate in this event and submit your work.</p>
+                  <button
+                    className="primary-btn"
+                    onClick={handleRegister}
+                    disabled={loading || !canRegister}
+                  >
+                    {loading ? 'Registering...' : 'Register for Event'}
+                  </button>
+                </>
               )}
             </div>
           )}
 
-          {activeTab === 'timeline' && (
-            <div className="timeline-content">
-              <div className="timeline">
-                <div className={`timeline-item ${event.stage === 'registration' ? 'active' : 'completed'}`}>
-                  <div className="timeline-marker"></div>
-                  <div className="timeline-content-item">
-                    <h4>Registration</h4>
-                    <p>Participants register for the event</p>
+          {/* Attachment Upload Stage */}
+          {currentStage === 'attachment_upload' && isUserRegistered && (
+            <div className="upload-section">
+              <h3>📎 Upload Your File</h3>
+              <p>Upload your submission for this event.</p>
+
+              <div className="file-upload">
+                <input
+                  id="attachment-file"
+                  type="file"
+                  onChange={handleFileChange}
+                  disabled={uploadLoading || !canUploadAttachment}
+                  accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.doc,.docx"
+                />
+
+                {selectedFile && (
+                  <div className="file-preview">
+                    <strong>Selected file:</strong> {selectedFile.name}
+                    ({(selectedFile.size / 1024).toFixed(2)} KB)
                   </div>
-                </div>
-                
-                <div className={`timeline-item ${event.stage === 'attachment_upload' ? 'active' : event.stage === 'voting' || event.stage === 'completed' ? 'completed' : ''}`}>
-                  <div className="timeline-marker"></div>
-                  <div className="timeline-content-item">
-                    <h4>File Upload</h4>
-                    <p>Participants submit their attachments</p>
-                  </div>
-                </div>
-                
-                <div className={`timeline-item ${event.stage === 'voting' ? 'active' : event.stage === 'completed' ? 'completed' : ''}`}>
-                  <div className="timeline-marker"></div>
-                  <div className="timeline-content-item">
-                    <h4>Voting</h4>
-                    <p>Participants vote on submissions</p>
-                  </div>
-                </div>
-                
-                <div className={`timeline-item ${event.stage === 'completed' ? 'active' : ''}`}>
-                  <div className="timeline-marker"></div>
-                  <div className="timeline-content-item">
-                    <h4>Results</h4>
-                    <p>Final results are published</p>
-                  </div>
-                </div>
+                )}
+
+                <button
+                  className="primary-btn"
+                  onClick={handleUploadAttachment}
+                  disabled={uploadLoading || !selectedFile || !canUploadAttachment}
+                >
+                  {uploadLoading ? 'Uploading...' : 'Upload File'}
+                </button>
+              </div>
+
+              <div className="upload-info">
+                <h4>📋 Allowed file types:</h4>
+                <ul>
+                  <li>Images: JPEG, PNG, GIF, WebP</li>
+                  <li>Documents: PDF, TXT, DOC, DOCX</li>
+                  <li>Maximum size: 10 MB</li>
+                </ul>
               </div>
             </div>
+          )}
+
+          {/* Voting Stage - MBC Configuration (Organizers) */}
+          {currentStage === 'voting' && isOrganizer && !votingConfigured && (
+            <VotingConfigurationPanel
+              eventId={event.id}
+              totalAttachments={event.attachmentCount || 0}
+              totalParticipants={event.participant_ids?.length || 0}
+              onConfigured={() => {
+                setVotingConfigured(true);
+                setSuccess('✅ Voting configuration completed! Participants can now submit their rankings.');
+              }}
+            />
+          )}
+
+          {/* Voting Stage - MBC Configuration Done (Organizers) */}
+          {currentStage === 'voting' && isOrganizer && votingConfigured && (
+            <div className="voting-configured-info">
+              <h3>✅ Voting System Configured</h3>
+              <p>The distributed voting system has been configured successfully.</p>
+              <p>Participants can now rank their assigned attachments.</p>
+              <p>Once all participants have voted, you can advance to the "Completed" stage to see results.</p>
+            </div>
+          )}
+
+          {/* Voting Stage - Ranking Panel (Participants) */}
+          {currentStage === 'voting' && isUserRegistered && !isOrganizer && (
+            <RankingVotePanel
+              eventId={event.id}
+              participantId={user?.id || ''}
+              onVotesSubmitted={() => {
+                setSuccess('✅ Your rankings have been submitted successfully!');
+              }}
+            />
+          )}
+
+          {/* Completed Stage - Results */}
+          {currentStage === 'completed' && (
+            <VotingResultsPanel eventId={event.id} />
           )}
         </div>
       </div>

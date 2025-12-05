@@ -1,0 +1,194 @@
+.ranking-vote-panel {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 1rem;
+}
+
+.ranking-vote-panel h3 {
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+  font-size: 1.5rem;
+}
+
+.ranking-vote-panel .instructions {
+  color: #7f8c8d;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.ranking-vote-panel .attachments-list {
+  margin-bottom: 1.5rem;
+}
+
+.ranking-vote-panel .attachment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+  background: #f8f9fa;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.ranking-vote-panel .attachment-item:hover {
+  background: #e9ecef;
+  border-color: #3498db;
+}
+
+.ranking-vote-panel .attachment-info {
+  flex: 1;
+  padding-right: 1rem;
+}
+
+.ranking-vote-panel .attachment-info strong {
+  display: block;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.ranking-vote-panel .attachment-info small {
+  color: #7f8c8d;
+  font-size: 0.875rem;
+}
+
+.ranking-vote-panel .rank-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ranking-vote-panel .rank-selector label {
+  font-weight: 600;
+  color: #34495e;
+}
+
+.ranking-vote-panel .rank-selector select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  min-width: 120px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.ranking-vote-panel .rank-selector select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.ranking-vote-panel .loading,
+.ranking-vote-panel .error {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
+  font-size: 1rem;
+}
+
+.ranking-vote-panel .error {
+  color: #e74c3c;
+}
+
+.ranking-vote-panel .completed-assignment {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.ranking-vote-panel .completed-assignment h3 {
+  color: #155724;
+  margin-bottom: 0.5rem;
+}
+
+.ranking-vote-panel .completed-assignment p {
+  color: #155724;
+  margin: 0.5rem 0;
+}
+
+.ranking-vote-panel .completed-assignment .quality-score {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+}
+
+.ranking-vote-panel .completed-assignment .quality-score strong {
+  color: #0d3d1a;
+  font-size: 1.3rem;
+}
+
+.ranking-vote-panel .message {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.ranking-vote-panel .error-message {
+  background: #fee;
+  border-left: 4px solid #e74c3c;
+  color: #c0392b;
+}
+
+.ranking-vote-panel .success-message {
+  background: #d4edda;
+  border-left: 4px solid #28a745;
+  color: #155724;
+}
+
+.ranking-vote-panel .primary-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 0.875rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+}
+
+.ranking-vote-panel .primary-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.ranking-vote-panel .primary-btn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .ranking-vote-panel {
+    padding: 1.5rem;
+  }
+
+  .ranking-vote-panel h3 {
+    font-size: 1.25rem;
+  }
+
+  .ranking-vote-panel .attachment-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .ranking-vote-panel .attachment-info {
+    padding-right: 0;
+  }
+
+  .ranking-vote-panel .rank-selector {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ranking-vote-panel .rank-selector select {
+    flex: 1;
+  }
+}
