@@ -1,12 +1,20 @@
 import { apiRequest, checkApiHealth, API_CONFIG } from "../config/api";
-import { Event, User } from "../types";
+import {
+  Event,
+  User,
+  VotingConfiguration,
+  Assignment,
+  RankingVote,
+  VotingResults,
+  VotingStatistics
+} from "../types";
 
 interface CreateEventRequest {
   name: string;
   description: string;
   date: string;
-  location?: string;
   organizer?: string;
+  author_id?: string; // Optional: send user ID as author
 }
 
 interface CreateUserRequest {
@@ -26,7 +34,8 @@ interface ApiUser {
 export const EventService = {
   async getAllEvents(): Promise<Event[]> {
     try {
-      const response = await apiRequest<{ data: any[] }>(API_CONFIG.ENDPOINTS.EVENTS);
+      // Request more events to avoid pagination issues (100 should be enough for now)
+      const response = await apiRequest<{ data: any[] }>(`${API_CONFIG.ENDPOINTS.EVENTS}?limit=100`);
       
       if (!response || !response.data || !Array.isArray(response.data)) {
         console.warn("Invalid response format from API:", response);
@@ -40,9 +49,8 @@ export const EventService = {
         title: event.name || event.title,
         description: event.description,
         date: event.start_date || event.date,
-        location: event.location || "Ubicación por determinar",
         organizer: event.organizer || "Organizador por determinar",
-        status: event.status === "completed" || event.status === "active" || event.status === "cancelled" 
+        status: event.status === "completed" || event.status === "active" || event.status === "cancelled"
           ? event.status as "completed" | "active" | "cancelled"
           : "active" as const,
         stage: (event.stage as "registration" | "attachment_upload" | "voting" | "completed") || "registration",
@@ -53,6 +61,7 @@ export const EventService = {
           no: 0
         },
         attachmentCount: event.attachment_count || 0,
+        creator_id: event.author_id, // Map author_id from backend
         created_at: event.created_at,
         updated_at: event.updated_at
       }));
@@ -68,7 +77,6 @@ export const EventService = {
           title: "Asignación de Tiempo de Telescopio Q2 2025",
           description: "Evaluación de propuestas para tiempo de telescopio destinado al estudio de galaxias con corrimiento al rojo z > 2.",
           date: "2025-09-23",
-          location: "Observatorio Virtual",
           organizer: "Sistema Telescopio",
           status: "active" as const,
           stage: "voting" as const,
@@ -81,7 +89,6 @@ export const EventService = {
           title: "Distributed Telescope Time Allocation 2026",
           description: "Annual telescope time allocation using distributed voting system based on Merrifield & Saari (2009) mathematical framework for fair and efficient proposal evaluation.",
           date: "2026-01-15",
-          location: "International Observatory Network",
           organizer: "Sistema Telescopio",
           status: "active" as const,
           stage: "completed" as const,
@@ -106,11 +113,13 @@ export const EventService = {
         description: eventData.description,
         start_date: eventData.date,
         end_date: endDate.toISOString().split("T")[0],
+        organizer: eventData.organizer || "",
+        author_id: eventData.author_id, // Pass author_id if provided
       };
 
       console.log("Sending request body:", requestBody);
 
-      const response = await apiRequest<{ message: string; event: any }>(
+      const response = await apiRequest<{ message: string; event: any; code: string }>(
         API_CONFIG.ENDPOINTS.EVENTS,
         {
           method: "POST",
@@ -129,13 +138,13 @@ export const EventService = {
         title: backendEvent.name || backendEvent.title,
         description: backendEvent.description,
         date: backendEvent.start_date || backendEvent.date,
-        location: eventData.location || "Ubicación por determinar",
-        organizer: eventData.organizer || "Organizador por determinar",
+        organizer: eventData.organizer || backendEvent.organizer || "Organizador por determinar",
         status: "active",
-        stage: "registration" as const,
+        stage: backendEvent.stage || "registration" as const,
         participantIDs: [],
         voteCount: { yes: 0, maybe: 0, no: 0 },
-        attachmentCount: 0
+        attachmentCount: 0,
+        creator_id: backendEvent.creator_id || backendEvent.author_id
       };
     } catch (error) {
       console.error("Failed to create event with API:", error);
@@ -159,13 +168,13 @@ export const EventService = {
         title: event.name || event.title,
         description: event.description,
         date: event.start_date || event.date,
-        location: event.location || "Ubicación por determinar",
         organizer: event.organizer || "Organizador por determinar",
         status: event.status || "active",
         stage: event.stage || "registration",
         participantIDs: event.participant_ids || [],
         voteCount: event.vote_count || { yes: 0, maybe: 0, no: 0 },
         attachmentCount: event.attachment_count || 0,
+        creator_id: event.author_id || event.creator_id,
         created_at: event.created_at,
         updated_at: event.updated_at
       };
@@ -208,8 +217,14 @@ export const EventService = {
     }
   },
 
-  async registerForEvent(eventId: string, userId: string): Promise<void> {
+  async registerForEvent(eventId: string, participantName: string, participantEmail: string): Promise<void> {
     try {
+      console.log('🎫 Registering for event:', {
+        eventId,
+        participantName,
+        participantEmail
+      });
+
       await apiRequest<any>(
         API_CONFIG.ENDPOINTS.EVENT_REGISTER(eventId),
         {
@@ -217,11 +232,16 @@ export const EventService = {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ user_id: userId }),
+          body: JSON.stringify({
+            participant_name: participantName,
+            participant_email: participantEmail
+          }),
         }
       );
+
+      console.log('✅ Registration successful');
     } catch (error) {
-      console.error("Failed to register for event:", error);
+      console.error("❌ Failed to register for event:", error);
       throw error;
     }
   },
@@ -232,8 +252,18 @@ export const EventService = {
         API_CONFIG.ENDPOINTS.EVENT_PARTICIPANTS(eventId)
       );
 
+      console.log('📊 Participants API Response:', {
+        fullResponse: response,
+        hasData: !!response.data,
+        hasParticipants: !!response.data?.participants,
+        participantsCount: response.data?.participants?.length || 0,
+        count: response.count
+      });
+
       // El backend devuelve { count, data: { event, participants } }
       const participants = response.data?.participants || [];
+
+      console.log('✅ Parsed participants:', participants);
 
       return participants.map(participant => ({
         id: participant.id,
@@ -244,16 +274,16 @@ export const EventService = {
         createdEventIDs: participant.created_event_ids || []
       }));
     } catch (error) {
-      console.error("Failed to fetch event participants:", error);
+      console.error("❌ Failed to fetch event participants:", error);
       return [];
     }
   }
 };
 
 export const UserService = {
-  async createUser(userData: CreateUserRequest): Promise<User> {
+  async createUser(userData: CreateUserRequest): Promise<{ user: User; token: string }> {
     try {
-      const response = await apiRequest<{ message: string; user: ApiUser }>(
+      const response = await apiRequest<{ message: string; user: ApiUser; token: string }>(
         API_CONFIG.ENDPOINTS.USERS,
         {
           method: "POST",
@@ -266,12 +296,15 @@ export const UserService = {
 
       const apiUser = response.user;
       return {
-        id: apiUser.id,
-        name: apiUser.name,
-        email: apiUser.email,
-        role: apiUser.role,
-        joinedEventIDs: apiUser.joined_event_ids || [],
-        createdEventIDs: apiUser.created_event_ids || []
+        user: {
+          id: apiUser.id,
+          name: apiUser.name,
+          email: apiUser.email,
+          role: apiUser.role,
+          joinedEventIDs: apiUser.joined_event_ids || [],
+          createdEventIDs: apiUser.created_event_ids || []
+        },
+        token: response.token
       };
     } catch (error) {
       console.error("Failed to create user:", error);
@@ -301,9 +334,9 @@ export const UserService = {
     }
   },
 
-  async authenticateUser(email: string, password: string): Promise<User> {
+  async authenticateUser(email: string, password: string): Promise<{ user: User; token: string }> {
     try {
-      const response = await apiRequest<{ message: string; user: ApiUser }>(
+      const response = await apiRequest<{ message: string; user: ApiUser; token: string }>(
         API_CONFIG.ENDPOINTS.USER_AUTHENTICATE,
         {
           method: "POST",
@@ -316,12 +349,15 @@ export const UserService = {
 
       const apiUser = response.user;
       return {
-        id: apiUser.id,
-        name: apiUser.name,
-        email: apiUser.email,
-        role: apiUser.role,
-        joinedEventIDs: apiUser.joined_event_ids || [],
-        createdEventIDs: apiUser.created_event_ids || []
+        user: {
+          id: apiUser.id,
+          name: apiUser.name,
+          email: apiUser.email,
+          role: apiUser.role,
+          joinedEventIDs: apiUser.joined_event_ids || [],
+          createdEventIDs: apiUser.created_event_ids || []
+        },
+        token: response.token
       };
     } catch (error) {
       console.error("Failed to authenticate user:", error);
@@ -331,22 +367,21 @@ export const UserService = {
 };
 
 export const AttachmentService = {
-  async uploadAttachment(eventId: string, userId: string, file: File): Promise<any> {
+  async uploadAttachment(eventId: string, participantId: string, file: File): Promise<any> {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("event_id", eventId);
-      formData.append("user_id", userId);
 
       const response = await apiRequest<any>(
-        `/api/v1/attachments`,
+        API_CONFIG.ENDPOINTS.UPLOAD_ATTACHMENT(eventId, participantId),
         {
           method: "POST",
           body: formData,
         }
       );
 
-      return response;
+      console.log('✅ Attachment uploaded:', response.data);
+      return response.data;
     } catch (error) {
       console.error("Failed to upload attachment:", error);
       throw error;
@@ -355,7 +390,9 @@ export const AttachmentService = {
 
   async getEventAttachments(eventId: string): Promise<any[]> {
     try {
-      const response = await apiRequest<{ data: any[] }>(`/api/v1/attachments?event_id=${eventId}`);
+      const response = await apiRequest<{ data: any[] }>(
+        API_CONFIG.ENDPOINTS.EVENT_ATTACHMENTS(eventId)
+      );
       return response.data || [];
     } catch (error) {
       console.error("Failed to fetch event attachments:", error);
@@ -396,6 +433,131 @@ export const VoteService = {
     } catch (error) {
       console.error("Failed to fetch event votes:", error);
       return [];
+    }
+  }
+};
+
+// ========================================
+// Distributed Voting Service
+// ========================================
+
+export const DistributedVotingService = {
+  /**
+   * Crear configuración de votación para un evento
+   */
+  async createVotingConfig(
+    eventId: string,
+    config: Partial<VotingConfiguration>
+  ): Promise<VotingConfiguration> {
+    try {
+      const response = await apiRequest<{ data: VotingConfiguration }>(
+        API_CONFIG.ENDPOINTS.VOTING_CONFIG(eventId),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        }
+      );
+      console.log('✅ Voting configuration created:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create voting configuration:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Generar asignaciones distribuidas para todos los participantes
+   */
+  async generateAssignments(eventId: string): Promise<Assignment[]> {
+    try {
+      const response = await apiRequest<{ data: { assignments: Assignment[] } }>(
+        API_CONFIG.ENDPOINTS.GENERATE_ASSIGNMENTS(eventId),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+      console.log('✅ Assignments generated:', response.data.assignments.length);
+      return response.data.assignments;
+    } catch (error) {
+      console.error('Failed to generate assignments:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Obtener la asignación de un participante específico
+   */
+  async getParticipantAssignment(
+    eventId: string,
+    participantId: string
+  ): Promise<Assignment> {
+    try {
+      const response = await apiRequest<{ data: Assignment }>(
+        API_CONFIG.ENDPOINTS.GET_ASSIGNMENT(eventId, participantId)
+      );
+      console.log('✅ Assignment loaded for participant:', participantId);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get participant assignment:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Enviar votos de ranking de un participante
+   */
+  async submitRankingVotes(
+    eventId: string,
+    participantId: string,
+    votes: RankingVote[]
+  ): Promise<void> {
+    try {
+      await apiRequest<{ message: string }>(
+        API_CONFIG.ENDPOINTS.SUBMIT_RANKING_VOTES(eventId, participantId),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ votes })
+        }
+      );
+      console.log('✅ Ranking votes submitted successfully');
+    } catch (error) {
+      console.error('Failed to submit ranking votes:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Obtener resultados calculados con Modified Borda Count
+   */
+  async getDistributedResults(eventId: string): Promise<VotingResults> {
+    try {
+      const response = await apiRequest<{ data: VotingResults }>(
+        API_CONFIG.ENDPOINTS.DISTRIBUTED_RESULTS(eventId)
+      );
+      console.log('✅ Distributed voting results loaded');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get distributed results:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Obtener estadísticas de votación del evento
+   */
+  async getVotingStatistics(eventId: string): Promise<VotingStatistics> {
+    try {
+      const response = await apiRequest<{ data: VotingStatistics }>(
+        API_CONFIG.ENDPOINTS.VOTING_STATISTICS(eventId)
+      );
+      console.log('✅ Voting statistics loaded');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get voting statistics:', error);
+      throw error;
     }
   }
 };

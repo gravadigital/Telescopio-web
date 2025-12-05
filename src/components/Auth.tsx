@@ -5,8 +5,8 @@ import { AuthProps, FormData, User } from '../types';
 import { UserService } from '../services/api';
 
 
-const Auth: React.FC<AuthProps> = ({ onClose }) => {
-  const [isLogin, setIsLogin] = useState<boolean>(true);
+const Auth: React.FC<AuthProps> = ({ onClose, initialMode = 'login' }) => {
+  const [isLogin, setIsLogin] = useState<boolean>(initialMode === 'login');
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: ''
@@ -47,23 +47,36 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
       }
 
       let userData: User;
+      let token: string;
 
       if (apiAvailable) {
         try {
           if (isLogin) {
             // Try to authenticate with real API (using demo password for now)
-            userData = await UserService.authenticateUser(
-              formData.email, 
+            const authResponse = await UserService.authenticateUser(
+              formData.email,
               "demo123"
             );
+            userData = authResponse.user;
+            token = authResponse.token;
           } else {
             // Create new user
-            userData = await UserService.createUser({
+            const createResponse = await UserService.createUser({
               name: formData.name || "User",
               email: formData.email
             });
+            userData = createResponse.user;
+            token = createResponse.token;
           }
           console.log('✅ User authenticated/created with API:', userData);
+          console.log('🔑 Token received:', token ? `${token.substring(0, 30)}...` : 'NO TOKEN');
+          console.log('💾 Saving to localStorage...');
+          login(userData, token);
+          console.log('✅ Login completed. Check localStorage:', {
+            hasToken: !!localStorage.getItem('telescopio_token'),
+            hasUser: !!localStorage.getItem('telescopio_user')
+          });
+          onClose && onClose();
         } catch (apiError) {
           console.warn('API authentication failed, falling back to demo mode:', apiError);
           throw apiError;
@@ -72,9 +85,6 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
         // Fallback local
         throw new Error('API not available');
       }
-
-      login(userData);
-      onClose && onClose();
       
     } catch (err) {
       console.warn('Using demo authentication:', err);
@@ -89,7 +99,9 @@ const Auth: React.FC<AuthProps> = ({ onClose }) => {
         createdEventIDs: []
       };
 
-      login(demoUserData);
+      // Use a dummy token for demo mode
+      const demoToken = 'demo-token-' + Date.now();
+      login(demoUserData, demoToken);
       onClose && onClose();
     } finally {
       setLoading(false);

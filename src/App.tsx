@@ -4,6 +4,8 @@ import './App.css';
 import Events from './components/Events';
 import Auth from './components/Auth';
 import EventDetailPage from './pages/EventDetailPage';
+import CreateEventPage from './pages/CreateEventPage';
+import ManageEventPage from './pages/ManageEventPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Importar utilidades de testing en desarrollo
@@ -80,12 +82,14 @@ function EventDetailPageWrapper(): JSX.Element {
 // Main App Content with Navigation
 function AppContent(): JSX.Element {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const { user, logout, isAuthenticated } = useAuth();
 
   const handleAuthAction = (action: AuthAction): void => {
     if (action === 'logout') {
       logout();
     } else {
+      setAuthMode(action);
       setShowAuthModal(true);
     }
   };
@@ -104,7 +108,7 @@ function AppContent(): JSX.Element {
             <Link to="/" className="nav-link">About</Link>
             <Link to="/" className="nav-link">See Demo</Link>
             <Link to="/events" className="nav-link">Events</Link>
-            
+
             {isAuthenticated ? (
               <>
                 <span className="user-greeting">Hello, {user?.name}</span>
@@ -124,11 +128,13 @@ function AppContent(): JSX.Element {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/events" element={<EventsPage />} />
+        <Route path="/events/create" element={<CreateEventPage />} />
+        <Route path="/events/:eventId/manage" element={<ManageEventPage />} />
         <Route path="/events/:eventId" element={<EventDetailPageWrapper />} />
       </Routes>
 
       {showAuthModal && (
-        <Auth onClose={() => setShowAuthModal(false)} />
+        <Auth onClose={() => setShowAuthModal(false)} initialMode={authMode} />
       )}
     </div>
   );
