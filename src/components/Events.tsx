@@ -74,7 +74,7 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
       'registration': 'Open Registration',
       'attachment_upload': 'File Upload',
       'voting': 'Voting',
-      'completed': 'Completed'
+      'results': 'Completed'
     };
     return stages[stage] || stage;
   };

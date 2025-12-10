@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { EventService } from '../services/api';
+import { EventService, AttachmentService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Event, User } from '../types';
 import './ManageEventPage.css';
@@ -12,6 +12,7 @@ const ManageEventPage: React.FC = () => {
 
   const [event, setEvent] = useState<Event | null>(null);
   const [participants, setParticipants] = useState<User[]>([]);
+  const [attachments, setAttachments] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [updatingStage, setUpdatingStage] = useState<boolean>(false);
@@ -61,6 +62,25 @@ const ManageEventPage: React.FC = () => {
         console.warn('Could not load participants:', err);
         setParticipants([]);
       }
+      
+      // Load attachments
+      try {
+        console.log('🔄 Loading attachments for event:', eventId);
+        const attachmentsData = await AttachmentService.getEventAttachments(eventId);
+        console.log('📎 Raw attachments data:', attachmentsData);
+        console.log('📊 Attachment count:', attachmentsData.length);
+        console.log('📋 Attachment details:', attachmentsData.map(a => ({
+          id: a.id,
+          participant_id: a.participant_id,
+          author_id: a.author_id,
+          filename: a.filename
+        })));
+        setAttachments(attachmentsData);
+      } catch (err: any) {
+        console.error('❌ Failed to load attachments:', err);
+        console.error('Error details:', err.message);
+        setAttachments([]);
+      }
     } catch (err) {
       console.error('Error loading event:', err);
       setError('Error loading event data. Please try again.');
@@ -91,7 +111,7 @@ const ManageEventPage: React.FC = () => {
   };
 
 const getNextStage = (currentStage: Event['stage']): Event['stage'] | null => {
-  const stageOrder: Event['stage'][] = ['creation', 'registration', 'attachment_upload', 'voting', 'completed'];
+  const stageOrder: Event['stage'][] = ['creation', 'registration', 'attachment_upload', 'voting', 'results'];
   const currentIndex = stageOrder.indexOf(currentStage);
 
   if (currentIndex >= 0 && currentIndex < stageOrder.length - 1) {
@@ -107,7 +127,7 @@ const getStageName = (stage: Event['stage']): string => {
     'registration': 'Registration',
     'attachment_upload': 'File Upload',
     'voting': 'Voting',
-    'completed': 'Completed'
+    'results': 'Results'
   };
   return stageNames[stage] || stage;
 };
@@ -207,6 +227,13 @@ const getStageName = (stage: Event['stage']): string => {
               <span className="meta-label">Participants:</span>
               <span className="meta-value">{participants.length}</span>
             </div>
+            
+            <div className="meta-item">
+              <span className="meta-label">Files Submitted:</span>
+              <span className="meta-value">
+                {new Set(attachments.map(a => a.participant_id)).size} / {participants.length}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -217,7 +244,7 @@ const getStageName = (stage: Event['stage']): string => {
           <div className="stage-flow">
             <div className={`stage-item ${
               event.stage === 'registration' ? 'active' :
-              (event.stage === 'attachment_upload' || event.stage === 'voting' || event.stage === 'completed') ? 'completed' : ''
+              (event.stage === 'attachment_upload' || event.stage === 'voting' || event.stage === 'results') ? 'completed' : ''
             }`}>
               <div className="stage-number">1</div>
               <div className="stage-name">Registration</div>
@@ -226,7 +253,7 @@ const getStageName = (stage: Event['stage']): string => {
 
             <div className={`stage-item ${
               event.stage === 'attachment_upload' ? 'active' :
-              (event.stage === 'voting' || event.stage === 'completed') ? 'completed' : ''
+              (event.stage === 'voting' || event.stage === 'results') ? 'completed' : ''
             }`}>
               <div className="stage-number">2</div>
               <div className="stage-name">File Upload</div>
@@ -235,16 +262,16 @@ const getStageName = (stage: Event['stage']): string => {
 
             <div className={`stage-item ${
               event.stage === 'voting' ? 'active' :
-              event.stage === 'completed' ? 'completed' : ''
+              event.stage === 'results' ? 'completed' : ''
             }`}>
               <div className="stage-number">3</div>
               <div className="stage-name">Voting</div>
             </div>
             <div className="stage-arrow">→</div>
 
-            <div className={`stage-item ${event.stage === 'completed' ? 'active' : ''}`}>
+            <div className={`stage-item ${event.stage === 'results' ? 'active' : ''}`}>
               <div className="stage-number">4</div>
-              <div className="stage-name">Completed</div>
+              <div className="stage-name">Results</div>
             </div>
           </div>
 
@@ -266,20 +293,20 @@ const getStageName = (stage: Event['stage']): string => {
               </button>
             )}
 
-            {event.stage !== 'completed' && (
+            {event.stage !== 'results' && (
               <button
-                onClick={() => handleUpdateStage('completed')}
+                onClick={() => handleUpdateStage('results')}
                 disabled={updatingStage}
                 className="btn btn-danger btn-lg"
               >
-                {updatingStage ? 'Updating...' : 'Complete Event'}
+                {updatingStage ? 'Updating...' : 'Move to Results'}
               </button>
             )}
 
-            {event.stage === 'completed' && (
+            {event.stage === 'results' && (
               <div className="completed-message">
                 <span className="completed-icon">✓</span>
-                Event has been completed
+                Event has reached final results
               </div>
             )}
           </div>
@@ -300,11 +327,17 @@ const getStageName = (stage: Event['stage']): string => {
                 <div className="header-cell">Name</div>
                 <div className="header-cell">Email</div>
                 <div className="header-cell">Role</div>
+                <div className="header-cell">File Status</div>
                 <div className="header-cell">Joined</div>
               </div>
 
               <div className="table-body">
-                {participants.map((participant) => (
+                {participants.map((participant) => {
+                  const hasSubmittedFile = attachments.some(
+                    att => att.participant_id === participant.id || att.author_id === participant.id
+                  );
+                  
+                  return (
                   <div key={participant.id} className="table-row">
                     <div className="table-cell">
                       {participant.name}
@@ -316,10 +349,18 @@ const getStageName = (stage: Event['stage']): string => {
                       </span>
                     </div>
                     <div className="table-cell">
+                      {hasSubmittedFile ? (
+                        <span className="badge badge-success">✓ Submitted</span>
+                      ) : (
+                        <span className="badge badge-warning">⏳ Pending</span>
+                      )}
+                    </div>
+                    <div className="table-cell">
                       Registered
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

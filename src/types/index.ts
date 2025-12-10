@@ -12,18 +12,17 @@ export interface Event {
   id: string;
   title: string;
   description: string;
-  stage: 'creation' | 'registration' | 'attachment_upload' | 'voting' | 'completed';
+  stage: 'creation' | 'registration' | 'attachment_upload' | 'voting' | 'results';
   date: string;
   organizer?: string;
   status?: 'active' | 'cancelled' | 'completed';
-  participantIDs?: string[];
+  participant_ids?: string[];
   voteCount?: {
     yes: number;
     maybe: number;
     no: number;
   };
   attachmentCount?: number;
-  participant_ids?: string[];
   max_participants?: number;
   created_at?: string;
   updated_at?: string;
@@ -129,7 +128,7 @@ export interface Assignment {
 
 export interface RankingVote {
   attachment_id: string;
-  rank_position: number;                     // 1 = best, higher numbers = worse
+  rank: number;                              // 1 = best, higher numbers = worse
   score?: number | null;
   confidence?: number | null;
   notes?: string;

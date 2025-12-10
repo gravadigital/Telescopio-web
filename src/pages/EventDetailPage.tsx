@@ -35,7 +35,24 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
 
   useEffect(() => {
     if (user && event) {
-      const userIsRegistered = user.joinedEventIDs.includes(event.id);
+      // Check if user is registered in multiple ways:
+      // 1. User's joinedEventIDs includes this event
+      // 2. Event's participant_ids includes this user
+      const inJoinedEvents = user.joinedEventIDs.includes(event.id);
+      const inParticipantList = event.participant_ids?.includes(user.id) || false;
+      const userIsRegistered = inJoinedEvents || inParticipantList;
+      
+      console.log('🔍 EventDetailPage - Registration check:', {
+        eventId: event.id,
+        userId: user.id,
+        userName: user.name,
+        inJoinedEvents,
+        inParticipantList,
+        userIsRegistered,
+        stage: event.stage,
+        participant_ids: event.participant_ids
+      });
+      
       setIsUserRegistered(userIsRegistered);
     }
   }, [user, event]);
@@ -91,7 +108,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
   };
 
   const getNextStage = (stage: Event['stage']): Event['stage'] | null => {
-    const stageOrder: Event['stage'][] = ['registration', 'attachment_upload', 'voting', 'completed'];
+    const stageOrder: Event['stage'][] = ['creation', 'registration', 'attachment_upload', 'voting', 'results'];
     const currentIndex = stageOrder.indexOf(stage);
     return currentIndex < stageOrder.length - 1 ? stageOrder[currentIndex + 1] : null;
   };
@@ -165,13 +182,13 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
 
       const fileInput = document.getElementById('attachment-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-    } catch (err) {
+      
+      // Reload event data to update attachment count
+      await fetchEventDetails();
+    } catch (err: any) {
       console.error('Error uploading file:', err);
-      setSuccess('File uploaded successfully! (demo mode)');
-      setSelectedFile(null);
-
-      const fileInput = document.getElementById('attachment-file') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
+      const errorMessage = err?.message || 'Failed to upload file. Please try again.';
+      setError(`Upload failed: ${errorMessage}`);
     } finally {
       setUploadLoading(false);
     }
@@ -183,7 +200,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
       'registration': 'Open Registration',
       'attachment_upload': 'File Upload',
       'voting': 'Voting',
-      'completed': 'Completed'
+      'results': 'Results'
     };
     return stages[stage] || stage;
   };
@@ -260,9 +277,29 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
   }
 
   const canRegister = currentStage === 'registration' && isAuthenticated && !isUserRegistered;
-  const canUploadAttachment = currentStage === 'attachment_upload' && isUserRegistered;
-  const isOrganizer = user?.role === 'organizer' || user?.role === 'admin';
+  const canUploadAttachment = currentStage === 'attachment_upload' && isAuthenticated && isUserRegistered;
+  const isEventCreator = user?.id === event.creator_id;
+  const isOrganizer = isEventCreator || user?.role === 'admin';
   const nextStage = getNextStage(currentStage);
+  
+  console.log('🎯 EventDetailPage - User permissions:', {
+    canRegister,
+    canUploadAttachment,
+    isUserRegistered,
+    isEventCreator,
+    isOrganizer,
+    stage: currentStage,
+    isAuthenticated,
+    userId: user?.id,
+    creatorId: event.creator_id,
+    userRole: user?.role,
+    votingConfigured,
+    debugInfo: {
+      userIdMatches: user?.id === event.creator_id,
+      isAdmin: user?.role === 'admin',
+      calculatedOrganizer: (user?.id === event.creator_id) || (user?.role === 'admin')
+    }
+  });
 
   return (
     <div className="event-detail-page">
@@ -445,7 +482,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
               <h3>✅ Voting System Configured</h3>
               <p>The distributed voting system has been configured successfully.</p>
               <p>Participants can now rank their assigned attachments.</p>
-              <p>Once all participants have voted, you can advance to the "Completed" stage to see results.</p>
+              <p>Once all participants have voted, you can advance to the "Results" stage to see results.</p>
             </div>
           )}
 
@@ -460,8 +497,8 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
             />
           )}
 
-          {/* Completed Stage - Results */}
-          {currentStage === 'completed' && (
+          {/* Results Stage - Final Results */}
+          {currentStage === 'results' && (
             <VotingResultsPanel eventId={event.id} />
           )}
         </div>
