@@ -59,34 +59,35 @@ const Auth: React.FC<AuthProps> = ({ onClose, initialMode = 'login' }) => {
             );
             userData = authResponse.user;
             token = authResponse.token;
+            console.log('✅ User authenticated with API:', userData);
+            console.log('🔑 Token received:', token ? `${token.substring(0, 30)}...` : 'NO TOKEN');
+            login(userData, token);
+            onClose && onClose();
           } else {
             // Create new user
             const createResponse = await UserService.createUser({
               name: formData.name || "User",
               email: formData.email
             });
-            userData = createResponse.user;
-            token = createResponse.token;
+            console.log('✅ User created successfully:', createResponse.user.email);
+            
+            // Show success message and switch to login mode
+            setError(''); // Clear any previous errors
+            alert(`Registration successful!\n\nEmail: ${createResponse.user.email}\nPassword: demo123\n\nPlease login with these credentials.`);
+            setIsLogin(true);
+            setFormData({ name: '', email: formData.email }); // Keep email for convenience
           }
-          console.log('✅ User authenticated/created with API:', userData);
-          console.log('🔑 Token received:', token ? `${token.substring(0, 30)}...` : 'NO TOKEN');
-          console.log('💾 Saving to localStorage...');
-          login(userData, token);
-          console.log('✅ Login completed. Check localStorage:', {
-            hasToken: !!localStorage.getItem('telescopio_token'),
-            hasUser: !!localStorage.getItem('telescopio_user')
-          });
-          onClose && onClose();
-        } catch (apiError) {
-          console.warn('API authentication failed, falling back to demo mode:', apiError);
-          throw apiError;
+        } catch (apiError: any) {
+          console.error('API authentication failed:', apiError);
+          setError(apiError.message || 'Authentication failed. Please check your credentials.');
+          setLoading(false);
+          return;
         }
       } else {
-        // Fallback local
         throw new Error('API not available');
       }
       
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Using demo authentication:', err);
       
       // Fallback: create local demo user

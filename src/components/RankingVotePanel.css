@@ -53,8 +53,26 @@
 }
 
 .ranking-vote-panel .attachment-info small {
+  display: block;
   color: #7f8c8d;
   font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.ranking-vote-panel .attachment-info .download-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: #3498db;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  transition: background 0.2s;
+}
+
+.ranking-vote-panel .attachment-info .download-link:hover {
+  background: #2980b9;
 }
 
 .ranking-vote-panel .rank-selector {

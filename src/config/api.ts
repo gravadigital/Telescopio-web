@@ -62,16 +62,21 @@ export const apiRequest = async <T = any>(
     endpoint,
     hasToken: !!token,
     tokenPreview: token ? `${token.substring(0, 20)}...` : 'NO TOKEN',
-    method: options.method || 'GET'
+    method: options.method || 'GET',
+    isFormData: options.body instanceof FormData
   });
+
+  // Si estamos enviando FormData, no establecer Content-Type (el browser lo hace automáticamente)
+  const isFormData = options.body instanceof FormData;
+  const headers: Record<string, string> = {
+    ...(isFormData ? {} : DEFAULT_HEADERS),
+    ...(options.headers as Record<string, string> || {}),
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
 
   const config: RequestInit = {
     ...options,
-    headers: {
-      ...DEFAULT_HEADERS,
-      ...(options.headers as Record<string, string> || {}),
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    },
+    headers,
   };
 
   console.log('📤 Request Headers:', config.headers);
@@ -81,7 +86,21 @@ export const apiRequest = async <T = any>(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      
+      // Si recibimos 401 Unauthorized, limpiar la sesión
+      if (response.status === 401) {
+        console.warn('🔒 Token inválido o expirado. Limpiando sesión...');
+        localStorage.removeItem('telescopio_user');
+        localStorage.removeItem('telescopio_token');
+        
+        // Recargar la página para que el AuthContext detecte la sesión limpia
+        if (endpoint !== API_CONFIG.ENDPOINTS.USER_AUTHENTICATE && 
+            endpoint !== API_CONFIG.ENDPOINTS.USERS) {
+          window.location.reload();
+        }
+      }
+      
+      throw new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();

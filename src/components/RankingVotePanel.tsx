@@ -33,10 +33,14 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
     setLoading(true);
     setError('');
     try {
+      console.log('🔍 Loading assignment for participant:', participantId, 'in event:', eventId);
+      
       const assignmentData = await DistributedVotingService.getParticipantAssignment(
         eventId,
         participantId
       );
+      
+      console.log('✅ Assignment loaded successfully:', assignmentData);
       setAssignment(assignmentData);
 
       // Cargar detalles de los attachments asignados
@@ -45,9 +49,16 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
         assignmentData.attachment_ids.includes(att.id)
       );
       setAttachments(assignedAttachments);
-    } catch (err) {
-      setError('Failed to load your assignment. Please try again later.');
-      console.error(err);
+    } catch (err: any) {
+      console.error('❌ Failed to load assignment:', err);
+      
+      // Check if the error is because voting hasn't been configured yet
+      const errorMessage = err?.message || err?.toString() || '';
+      if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+        setError('Voting has not been configured yet. Please wait for the organizer to set up the voting system.');
+      } else {
+        setError('Failed to load your assignment. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -81,22 +92,26 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
     setError('');
 
     try {
-      const votes = attachments.map(att => ({
+      const rankings = attachments.map(att => ({
         attachment_id: att.id,
-        rank_position: att.rank!
+        rank: att.rank!
       }));
+
+      console.log('📤 Submitting votes:', rankings);
 
       await DistributedVotingService.submitRankingVotes(
         eventId,
         participantId,
-        votes
+        assignment!.id,
+        rankings
       );
 
       setSuccess('Your rankings have been submitted successfully!');
       onVotesSubmitted();
-    } catch (err) {
-      setError('Failed to submit rankings. Please try again.');
-      console.error(err);
+    } catch (err: any) {
+      console.error('❌ Submit error:', err);
+      const errorMsg = err?.response?.data?.error || err?.message || 'Failed to submit rankings. Please try again.';
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -159,6 +174,16 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
                 Uploaded: {new Date(att.uploaded_at).toLocaleDateString()} |
                 Size: {(att.file_size / 1024 / 1024).toFixed(2)} MB
               </small>
+              {att.url && (
+                <a 
+                  href={`http://localhost:8080${att.url}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="download-link"
+                >
+                  📥 Download / View File
+                </a>
+              )}
             </div>
             <div className="rank-selector">
               <label>Rank:</label>

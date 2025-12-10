@@ -154,6 +154,12 @@
   letter-spacing: 0.5px;
 }
 
+.stage-creation {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
 .stage-registration {
   background: rgba(34, 197, 94, 0.2);
   color: #86efac;
@@ -172,7 +178,7 @@
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
-.stage-completed {
+.stage-results {
   background: rgba(139, 92, 246, 0.2);
   color: #c4b5fd;
   border: 1px solid rgba(139, 92, 246, 0.3);

@@ -21,15 +21,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const savedUser = localStorage.getItem('telescopio_user');
     const savedToken = localStorage.getItem('telescopio_token');
 
+    console.log('🔍 AuthContext: Checking saved session', {
+      hasSavedUser: !!savedUser,
+      hasSavedToken: !!savedToken
+    });
+
     if (savedUser && savedToken) {
       try {
-        setUser(JSON.parse(savedUser) as User);
+        const parsedUser = JSON.parse(savedUser) as User;
+        console.log('✅ Restored session for:', parsedUser.email);
+        setUser(parsedUser);
         setToken(savedToken);
       } catch (error) {
-        console.error('Error parsing saved user:', error);
+        console.error('❌ Error parsing saved user:', error);
         localStorage.removeItem('telescopio_user');
         localStorage.removeItem('telescopio_token');
       }
+    } else {
+      console.log('ℹ️ No saved session found. User must login.');
     }
     setLoading(false);
   }, []);

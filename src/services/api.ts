@@ -53,7 +53,7 @@ export const EventService = {
         status: event.status === "completed" || event.status === "active" || event.status === "cancelled"
           ? event.status as "completed" | "active" | "cancelled"
           : "active" as const,
-        stage: (event.stage as "registration" | "attachment_upload" | "voting" | "completed") || "registration",
+        stage: (event.stage as "creation" | "registration" | "attachment_upload" | "voting" | "results") || "registration",
         participantIDs: event.participant_ids || [],
         voteCount: {
           yes: 0,
@@ -80,7 +80,7 @@ export const EventService = {
           organizer: "Sistema Telescopio",
           status: "active" as const,
           stage: "voting" as const,
-          participantIDs: [],
+          participant_ids: [],
           voteCount: { yes: 5, maybe: 2, no: 0 },
           attachmentCount: 3
         },
@@ -91,8 +91,8 @@ export const EventService = {
           date: "2026-01-15",
           organizer: "Sistema Telescopio",
           status: "active" as const,
-          stage: "completed" as const,
-          participantIDs: [],
+          stage: "results" as const,
+          participant_ids: [],
           voteCount: { yes: 8, maybe: 1, no: 0 },
           attachmentCount: 5
         }
@@ -108,13 +108,13 @@ export const EventService = {
       const endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 1);
 
+      // NO enviar author_id - el backend lo toma del token JWT automáticamente
       const requestBody = {
         name: eventData.name,
         description: eventData.description,
         start_date: eventData.date,
         end_date: endDate.toISOString().split("T")[0],
-        organizer: eventData.organizer || "",
-        author_id: eventData.author_id, // Pass author_id if provided
+        organizer: eventData.organizer || ""
       };
 
       console.log("Sending request body:", requestBody);
@@ -132,7 +132,13 @@ export const EventService = {
 
       console.log("API response:", response);
 
+      // El backend devuelve { event: {...}, message, code }
       const backendEvent = response.event;
+      
+      if (!backendEvent) {
+        throw new Error('Backend did not return event data');
+      }
+      
       return {
         id: backendEvent.id,
         title: backendEvent.name || backendEvent.title,
@@ -140,11 +146,11 @@ export const EventService = {
         date: backendEvent.start_date || backendEvent.date,
         organizer: eventData.organizer || backendEvent.organizer || "Organizador por determinar",
         status: "active",
-        stage: backendEvent.stage || "registration" as const,
-        participantIDs: [],
+        stage: backendEvent.stage || "creation" as const,
+        participant_ids: [],
         voteCount: { yes: 0, maybe: 0, no: 0 },
         attachmentCount: 0,
-        creator_id: backendEvent.creator_id || backendEvent.author_id
+        creator_id: backendEvent.author_id
       };
     } catch (error) {
       console.error("Failed to create event with API:", error);
@@ -171,7 +177,7 @@ export const EventService = {
         organizer: event.organizer || "Organizador por determinar",
         status: event.status || "active",
         stage: event.stage || "registration",
-        participantIDs: event.participant_ids || [],
+        participant_ids: event.participant_ids || [],
         voteCount: event.vote_count || { yes: 0, maybe: 0, no: 0 },
         attachmentCount: event.attachment_count || 0,
         creator_id: event.author_id || event.creator_id,
@@ -390,13 +396,17 @@ export const AttachmentService = {
 
   async getEventAttachments(eventId: string): Promise<any[]> {
     try {
-      const response = await apiRequest<{ data: any[] }>(
-        API_CONFIG.ENDPOINTS.EVENT_ATTACHMENTS(eventId)
-      );
+      console.log('🔍 Fetching attachments for event:', eventId);
+      const endpoint = API_CONFIG.ENDPOINTS.EVENT_ATTACHMENTS(eventId);
+      console.log('📡 Endpoint:', endpoint);
+      
+      const response = await apiRequest<{ data: any[] }>(endpoint);
+      console.log('✅ Raw attachment response:', response);
+      
       return response.data || [];
     } catch (error) {
-      console.error("Failed to fetch event attachments:", error);
-      return [];
+      console.error("❌ Failed to fetch event attachments:", error);
+      throw error;
     }
   }
 };
@@ -469,17 +479,24 @@ export const DistributedVotingService = {
   /**
    * Generar asignaciones distribuidas para todos los participantes
    */
-  async generateAssignments(eventId: string): Promise<Assignment[]> {
+  async generateAssignments(eventId: string): Promise<void> {
     try {
-      const response = await apiRequest<{ data: { assignments: Assignment[] } }>(
+      const response = await apiRequest<{ 
+        data: { 
+          assignments_count: number;
+          total_participants: number;
+          total_attachments: number;
+          total_evaluations: number;
+        };
+        message: string;
+      }>(
         API_CONFIG.ENDPOINTS.GENERATE_ASSIGNMENTS(eventId),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         }
       );
-      console.log('✅ Assignments generated:', response.data.assignments.length);
-      return response.data.assignments;
+      console.log('✅ Assignments generated:', response.data.assignments_count, 'assignments for', response.data.total_participants, 'participants');
     } catch (error) {
       console.error('Failed to generate assignments:', error);
       throw error;
@@ -494,11 +511,11 @@ export const DistributedVotingService = {
     participantId: string
   ): Promise<Assignment> {
     try {
-      const response = await apiRequest<{ data: Assignment }>(
+      const response = await apiRequest<{ assignment: Assignment }>(
         API_CONFIG.ENDPOINTS.GET_ASSIGNMENT(eventId, participantId)
       );
       console.log('✅ Assignment loaded for participant:', participantId);
-      return response.data;
+      return response.assignment;
     } catch (error) {
       console.error('Failed to get participant assignment:', error);
       throw error;
@@ -511,7 +528,8 @@ export const DistributedVotingService = {
   async submitRankingVotes(
     eventId: string,
     participantId: string,
-    votes: RankingVote[]
+    assignmentId: string,
+    rankings: RankingVote[]
   ): Promise<void> {
     try {
       await apiRequest<{ message: string }>(
@@ -519,7 +537,10 @@ export const DistributedVotingService = {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ votes })
+          body: JSON.stringify({ 
+            assignment_id: assignmentId,
+            rankings 
+          })
         }
       );
       console.log('✅ Ranking votes submitted successfully');

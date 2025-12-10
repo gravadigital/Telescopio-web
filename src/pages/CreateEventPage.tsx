@@ -93,15 +93,12 @@ const CreateEventPage: React.FC = () => {
     }
 
     try {
-      // Include author_id from authenticated user
-      const eventDataWithAuthor = {
-        ...formData,
-        author_id: currentUser?.id // Add current user's ID as author
-      };
-      console.log('Creating event with author_id:', currentUser?.id);
+      // NO incluir author_id - el backend lo toma del token JWT automáticamente
+      console.log('📤 Creating event with authenticated user token');
+      console.log('📋 Event data:', formData);
 
-      const newEvent = await EventService.createEvent(eventDataWithAuthor);
-      console.log('Event created successfully:', newEvent);
+      const newEvent = await EventService.createEvent(formData);
+      console.log('✅ Event created successfully:', newEvent);
       
       // Redirect to the new event's detail page
       navigate(`/events/${newEvent.id}`);
