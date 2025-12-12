@@ -57,7 +57,13 @@ const CreateEventPage: React.FC = () => {
     setCreating(true);
     setError('');
 
-    if (!formData.title || !formData.description || !formData.date) {
+    if (!formData.name || !formData.description || !formData.date) {
+      setError('All fields are required.');
+      setCreating(false);
+      return;
+    }
+    
+    if (formData.name.length < 3) {
       setError('Event name must be at least 3 characters long.');
       setCreating(false);
       return;
