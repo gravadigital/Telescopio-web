@@ -127,12 +127,12 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
     }
   }, [user, event.id, event.participant_ids, event.stage]);
 
-  const canRegister = event.stage === 'registration' && isAuthenticated && !isUserRegistered;
-  const canUploadAttachment = event.stage === 'attachment_upload' && isAuthenticated && isUserRegistered;
-  
   // Solo el creador del evento puede administrarlo
   const isEventCreator = user?.id === event.creator_id;
   const isOrganizer = isEventCreator || user?.role === 'admin';
+  
+  const canRegister = event.stage === 'registration' && isAuthenticated && !isUserRegistered && !isEventCreator;
+  const canUploadAttachment = event.stage === 'attachment_upload' && isAuthenticated && isUserRegistered;
   
   console.log('🎯 User permissions:', {
     canRegister,
@@ -236,8 +236,15 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
       if (fileInput) fileInput.value = '';
     } catch (err: any) {
       console.error('Error uploading file:', err);
-      const errorMessage = err?.message || 'Failed to upload file. Please try again.';
-      setError(`Upload failed: ${errorMessage}`);
+      
+      // Handle specific error for duplicate attachment
+      if (err?.message?.includes('DUPLICATE_ATTACHMENT') || 
+          err?.message?.includes('already has an attachment')) {
+        setError('You have already uploaded a file for this event. Each participant can only upload ONE file.');
+      } else {
+        const errorMessage = err?.message || 'Failed to upload file. Please try again.';
+        setError(`Upload failed: ${errorMessage}`);
+      }
     } finally {
       setUploadLoading(false);
     }

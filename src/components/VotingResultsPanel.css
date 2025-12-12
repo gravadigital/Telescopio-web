@@ -69,6 +69,27 @@
   color: #2c3e50;
 }
 
+.voting-results-panel .stat-help {
+  color: #95a5a6;
+  font-size: 0.75rem;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+
+.voting-results-panel .ranking-info {
+  background: #e8f4f8;
+  border-left: 4px solid #3498db;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 4px;
+}
+
+.voting-results-panel .ranking-info p {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 0.9rem;
+}
+
 .voting-results-panel .ranking-controls {
   display: flex;
   gap: 1rem;
@@ -165,6 +186,23 @@
 .voting-results-panel .filename-cell {
   font-weight: 500;
   color: #34495e;
+}
+
+.voting-results-panel .file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.voting-results-panel .file-info .filename {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.voting-results-panel .file-info .author {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  font-style: italic;
 }
 
 .voting-results-panel .info-box {

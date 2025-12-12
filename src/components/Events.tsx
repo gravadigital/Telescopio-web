@@ -81,7 +81,10 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
 
   // Separate events into "my events" and "all events"
   const myEvents = user ? events.filter(event => event.creator_id === user.id) : [];
-  const allEvents = events;
+  // Exclude user's own events from 'All Events' tab
+  const allEvents = user 
+    ? events.filter(event => event.creator_id !== user.id)
+    : events;
 
   // Debug: Log user and events for troubleshooting
   console.log('🔍 Events Debug:', {
@@ -254,17 +257,46 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                               Manage
                             </button>
                           ) : (
-                            /* Show Join button for non-creators */
-                            event.stage === 'registration' && (
-                              <button
-                                className="btn btn-primary btn-sm"
-                                onClick={() => handleRegisterEvent(event.id)}
-                                disabled={!isAuthenticated}
-                                title={!isAuthenticated ? "Log in to participate" : "Join this event"}
-                              >
-                                Join
-                              </button>
-                            )
+                            /* Show action button for participants based on stage */
+                            <>
+                              {event.stage === 'registration' && (
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => navigate(`/events/${event.id}`)}
+                                  disabled={!isAuthenticated}
+                                  title={!isAuthenticated ? "Log in to participate" : "Register for event"}
+                                >
+                                  📝 Register
+                                </button>
+                              )}
+                              {event.stage === 'attachment_upload' && isAuthenticated && (
+                                <button
+                                  className="btn btn-info btn-sm"
+                                  onClick={() => navigate(`/events/${event.id}`)}
+                                  title="Upload your file"
+                                >
+                                  📄 Upload File
+                                </button>
+                              )}
+                              {event.stage === 'voting' && isAuthenticated && (
+                                <button
+                                  className="btn btn-success btn-sm"
+                                  onClick={() => navigate(`/events/${event.id}`)}
+                                  title="Submit your votes"
+                                >
+                                  ✅ Vote
+                                </button>
+                              )}
+                              {event.stage === 'results' && (
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => navigate(`/events/${event.id}`)}
+                                  title="View results"
+                                >
+                                  🏆 Results
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
