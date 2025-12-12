@@ -57,18 +57,7 @@ const CreateEventPage: React.FC = () => {
     setCreating(true);
     setError('');
 
-    // Debug: Check if we have a token
-    const token = localStorage.getItem('telescopio_token');
-    const user = localStorage.getItem('telescopio_user');
-    console.log('🔐 Auth Debug:', {
-      hasToken: !!token,
-      token: token ? `${token.substring(0, 20)}...` : 'NO TOKEN',
-      hasUser: !!user,
-      user: user ? JSON.parse(user) : 'NO USER'
-    });
-
-    // Frontend validation
-    if (formData.name.length < 3) {
+    if (!formData.title || !formData.description || !formData.date) {
       setError('Event name must be at least 3 characters long.');
       setCreating(false);
       return;
