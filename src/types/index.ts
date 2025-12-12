@@ -138,6 +138,7 @@ export interface AttachmentResult {
   attachment_id: string;
   filename: string;
   participant_id: string;
+  participant_name?: string;                 // Name of who uploaded the file
   mbc_score: number;                         // Modified Borda Count score
   global_rank: number;
   adjusted_rank: number;

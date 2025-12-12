@@ -13,6 +13,7 @@ const ManageEventPage: React.FC = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [participants, setParticipants] = useState<User[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
+  const [votingStatus, setVotingStatus] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [updatingStage, setUpdatingStage] = useState<boolean>(false);
@@ -80,6 +81,25 @@ const ManageEventPage: React.FC = () => {
         console.error('❌ Failed to load attachments:', err);
         console.error('Error details:', err.message);
         setAttachments([]);
+      }
+
+      // Load voting statistics if in voting or results stage
+      if (eventData.stage === 'voting' || eventData.stage === 'results') {
+        try {
+          const response = await fetch(`http://localhost:8080/api/v1/events/${eventId}/voting-statistics`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          if (response.ok) {
+            const statsData = await response.json();
+            if (statsData.data && statsData.data.participant_voting_status) {
+              setVotingStatus(statsData.data.participant_voting_status);
+            }
+          }
+        } catch (err) {
+          console.warn('Could not load voting statistics:', err);
+        }
       }
     } catch (err) {
       console.error('Error loading event:', err);
@@ -328,6 +348,7 @@ const getStageName = (stage: Event['stage']): string => {
                 <div className="header-cell">Email</div>
                 <div className="header-cell">Role</div>
                 <div className="header-cell">File Status</div>
+                <div className="header-cell">Voting Status</div>
                 <div className="header-cell">Joined</div>
               </div>
 
@@ -336,6 +357,9 @@ const getStageName = (stage: Event['stage']): string => {
                   const hasSubmittedFile = attachments.some(
                     att => att.participant_id === participant.id || att.author_id === participant.id
                   );
+                  
+                  // Get real voting status from backend
+                  const hasVoted = votingStatus[participant.id] === true;
                   
                   return (
                   <div key={participant.id} className="table-row">
@@ -353,6 +377,17 @@ const getStageName = (stage: Event['stage']): string => {
                         <span className="badge badge-success">✓ Submitted</span>
                       ) : (
                         <span className="badge badge-warning">⏳ Pending</span>
+                      )}
+                    </div>
+                    <div className="table-cell">
+                      {event.stage === 'voting' || event.stage === 'results' ? (
+                        hasVoted ? (
+                          <span className="badge badge-success">✓ Voted</span>
+                        ) : (
+                          <span className="badge badge-warning">⏳ Not Voted</span>
+                        )
+                      ) : (
+                        <span className="badge badge-secondary">N/A</span>
                       )}
                     </div>
                     <div className="table-cell">

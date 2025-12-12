@@ -55,6 +55,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
     localStorage.removeItem('telescopio_user');
     localStorage.removeItem('telescopio_token');
+    // Redirect to home page after logout
+    window.location.href = '/';
   };
 
   const updateUser = (updatedData: Partial<User>): void => {
