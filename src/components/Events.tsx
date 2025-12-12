@@ -86,18 +86,6 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
     ? events.filter(event => event.creator_id !== user.id)
     : events;
 
-  // Debug: Log user and events for troubleshooting
-  console.log('🔍 Events Debug:', {
-    userId: user?.id,
-    totalEvents: events.length,
-    myEventsCount: myEvents.length,
-    eventsWithCreatorId: events.filter(e => e.creator_id).map(e => ({
-      title: e.title,
-      creator_id: e.creator_id,
-      matches: e.creator_id === user?.id
-    }))
-  });
-
   const displayEvents = activeTab === 'my' ? myEvents : allEvents;
 
   if (loading) {
