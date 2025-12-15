@@ -19,10 +19,17 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
 
-  // Valores por defecto basados en las recomendaciones matemáticas
-  const recommendedM = Math.ceil(2 * Math.log2(totalAttachments));
+  // Calculate maximum possible m considering conflict of interest
+  const maxPossibleM = totalAttachments >= totalParticipants 
+    ? totalAttachments - 1  // Each participant can't evaluate their own file
+    : totalAttachments;
+
+  // Calculate recommended M, capped at maxPossibleM
+  const baseRecommendedM = Math.ceil(2 * Math.log2(totalAttachments));
+  const recommendedM = Math.min(baseRecommendedM, maxPossibleM);
+
   const [config, setConfig] = useState({
-    attachments_per_evaluator: Math.max(recommendedM, 3),
+    attachments_per_evaluator: Math.max(Math.min(recommendedM, maxPossibleM), 2),
     quality_good_threshold: 0.6,
     quality_bad_threshold: 0.3,
     adjustment_magnitude: 3,
@@ -36,17 +43,29 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
     setSuccess('');
 
     try {
-      // Crear configuración
-      await DistributedVotingService.createVotingConfig(eventId, config);
+      // Intentar crear configuración
+      try {
+        await DistributedVotingService.createVotingConfig(eventId, config);
+        console.log('✅ Voting configuration created');
+      } catch (configErr: any) {
+        // Si la configuración ya existe (409), continuar de todas formas
+        if (configErr?.message?.includes('already exists') || configErr?.message?.includes('CONFIG_EXISTS')) {
+          console.log('ℹ️ Voting configuration already exists, proceeding to generate assignments');
+        } else {
+          // Si es otro error, lanzar para manejarlo abajo
+          throw configErr;
+        }
+      }
 
       // Generar asignaciones automáticamente
       await DistributedVotingService.generateAssignments(eventId);
 
       setSuccess('Voting configuration created and assignments generated successfully!');
       onConfigured();
-    } catch (err) {
-      setError('Failed to create voting configuration. Please check the parameters and try again.');
-      console.error(err);
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Unknown error';
+      setError(`Failed to configure voting system: ${errorMessage}`);
+      console.error('Voting configuration error:', err);
     } finally {
       setLoading(false);
     }
@@ -62,6 +81,10 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
           <li>Total Attachments: {totalAttachments}</li>
           <li>Total Participants: {totalParticipants}</li>
           <li>Recommended attachments per evaluator: ≥ {recommendedM}</li>
+          <li>Maximum evaluable per participant: {maxPossibleM}</li>
+          {totalAttachments >= totalParticipants && (
+            <li className="warning-text">⚠️ Note: Participants cannot evaluate their own submissions (conflict of interest). Each participant can evaluate at most {maxPossibleM} files.</li>
+          )}
         </ul>
       </div>
 
@@ -71,8 +94,8 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
             Attachments per Evaluator (m):
             <input
               type="number"
-              min={recommendedM}
-              max={totalAttachments}
+              min={2}
+              max={maxPossibleM}
               value={config.attachments_per_evaluator}
               onChange={(e) => setConfig({
                 ...config,
@@ -81,7 +104,7 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
               required
             />
           </label>
-          <small>Recommended: ≥ {recommendedM} for optimal convergence (2*log₂(k))</small>
+          <small>Recommended: ≥ {recommendedM} for optimal convergence (2*log₂(k), M). Maximum: {maxPossibleM} (participants can't evaluate their own files)</small>
         </div>
 
         <div className="form-group">
