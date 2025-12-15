@@ -88,7 +88,7 @@ const ManageEventPage: React.FC = () => {
         try {
           const response = await fetch(`http://localhost:8080/api/v1/events/${eventId}/voting-statistics`, {
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${localStorage.getItem('telescopio_token')}`
             }
           });
           if (response.ok) {
