@@ -22,15 +22,18 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ eventId }) => {
     setLoading(true);
     setError('');
     try {
+      console.log('🔄 Loading voting results for event:', eventId);
       const [resultsData, statsData] = await Promise.all([
         DistributedVotingService.getDistributedResults(eventId),
         DistributedVotingService.getVotingStatistics(eventId)
       ]);
+      console.log('✅ Results loaded:', { resultsData, statsData });
       setResults(resultsData);
       setStatistics(statsData);
-    } catch (err) {
-      setError('Failed to load voting results. Results may not be available yet.');
-      console.error(err);
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Unknown error';
+      setError(`Failed to load voting results: ${errorMessage}`);
+      console.error('❌ Error loading results:', err);
     } finally {
       setLoading(false);
     }

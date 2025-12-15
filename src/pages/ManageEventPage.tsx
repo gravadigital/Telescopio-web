@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { EventService, AttachmentService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Event, User } from '../types';
+import VotingResultsPanel from '../components/VotingResultsPanel';
 import './ManageEventPage.css';
 
 const ManageEventPage: React.FC = () => {
@@ -112,6 +113,20 @@ const ManageEventPage: React.FC = () => {
   const handleUpdateStage = async (newStage: Event['stage']): Promise<void> => {
     if (!eventId || !event) return;
 
+    // Validations before advancing
+    const validationError = validateStageAdvance(event.stage, newStage);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    // Confirm if skipping stages
+    if (newStage === 'results' && event.stage !== 'voting') {
+      if (!window.confirm('⚠️ You are about to skip to Results without completing Voting. Are you sure?')) {
+        return;
+      }
+    }
+
     setUpdatingStage(true);
     setError('');
 
@@ -130,12 +145,75 @@ const ManageEventPage: React.FC = () => {
     }
   };
 
+  const validateStageAdvance = (currentStage: Event['stage'], targetStage: Event['stage']): string | null => {
+    // Can't advance from registration if no participants
+    if (currentStage === 'registration' && participants.length === 0) {
+      return 'Cannot advance: No participants registered yet.';
+    }
+
+    // Can't advance from attachment_upload if not all participants submitted
+    if (currentStage === 'attachment_upload' && attachments.length < participants.length) {
+      return `Cannot advance: Only ${attachments.length} of ${participants.length} participants have submitted files.`;
+    }
+
+    // Can't advance to results from voting without voting configuration
+    if (currentStage === 'voting' && targetStage === 'results') {
+      // Check if all participants have voted
+      const totalParticipants = participants.length;
+      const votedCount = Object.values(votingStatus).filter(voted => voted).length;
+      if (votedCount < totalParticipants) {
+        return `Cannot advance: Only ${votedCount} of ${totalParticipants} participants have voted.`;
+      }
+    }
+
+    return null;
+  };
+
+  const handleRevertStage = async (): Promise<void> => {
+    if (!eventId || !event) return;
+
+    const previousStage = getPreviousStage(event.stage);
+    if (!previousStage) {
+      setError('Cannot revert from this stage.');
+      return;
+    }
+
+    if (!window.confirm(`⚠️ Revert to ${getStageName(previousStage)}? This may affect existing data.`)) {
+      return;
+    }
+
+    setUpdatingStage(true);
+    setError('');
+
+    try {
+      await EventService.updateEventStage(eventId, previousStage);
+      await loadEventData();
+      console.log(`Event stage reverted to: ${previousStage}`);
+    } catch (err) {
+      console.error('Error reverting stage:', err);
+      setError('Error reverting stage. Please try again.');
+    } finally {
+      setUpdatingStage(false);
+    }
+  };
+
 const getNextStage = (currentStage: Event['stage']): Event['stage'] | null => {
   const stageOrder: Event['stage'][] = ['creation', 'registration', 'attachment_upload', 'voting', 'results'];
   const currentIndex = stageOrder.indexOf(currentStage);
 
   if (currentIndex >= 0 && currentIndex < stageOrder.length - 1) {
     return stageOrder[currentIndex + 1];
+  }
+
+  return null;
+};
+
+const getPreviousStage = (currentStage: Event['stage']): Event['stage'] | null => {
+  const stageOrder: Event['stage'][] = ['creation', 'registration', 'attachment_upload', 'voting', 'results'];
+  const currentIndex = stageOrder.indexOf(currentStage);
+
+  if (currentIndex > 0) {
+    return stageOrder[currentIndex - 1];
   }
 
   return null;
@@ -313,13 +391,14 @@ const getStageName = (stage: Event['stage']): string => {
               </button>
             )}
 
-            {event.stage !== 'results' && (
+            {getPreviousStage(event.stage) && (
               <button
-                onClick={() => handleUpdateStage('results')}
+                onClick={handleRevertStage}
                 disabled={updatingStage}
-                className="btn btn-danger btn-lg"
+                className="btn btn-secondary btn-lg"
+                style={{ marginLeft: '10px' }}
               >
-                {updatingStage ? 'Updating...' : 'Move to Results'}
+                {updatingStage ? 'Updating...' : `⟲ Revert to ${getStageName(getPreviousStage(event.stage)!)}`}
               </button>
             )}
 
@@ -332,74 +411,83 @@ const getStageName = (stage: Event['stage']): string => {
           </div>
         </div>
 
-        {/* Participants Section */}
-        <div className="participants-section">
-          <h3>Registered Participants ({participants.length})</h3>
+        {/* Participants Section (only show if not in results stage) */}
+        {event.stage !== 'results' && (
+          <div className="participants-section">
+            <h3>Registered Participants ({participants.length})</h3>
 
-          {participants.length === 0 ? (
-            <div className="empty-state">
-              <p>No participants have registered yet.</p>
-              <p>Share the event link to invite participants!</p>
-            </div>
-          ) : (
-            <div className="participants-table">
-              <div className="table-header">
-                <div className="header-cell">Name</div>
-                <div className="header-cell">Email</div>
-                <div className="header-cell">Role</div>
-                <div className="header-cell">File Status</div>
-                <div className="header-cell">Voting Status</div>
-                <div className="header-cell">Joined</div>
+            {participants.length === 0 ? (
+              <div className="empty-state">
+                <p>No participants have registered yet.</p>
+                <p>Share the event link to invite participants!</p>
               </div>
+            ) : (
+              <div className="participants-table">
+                <div className="table-header">
+                  <div className="header-cell">Name</div>
+                  <div className="header-cell">Email</div>
+                  <div className="header-cell">Role</div>
+                  <div className="header-cell">File Status</div>
+                  <div className="header-cell">Voting Status</div>
+                  <div className="header-cell">Joined</div>
+                </div>
 
-              <div className="table-body">
-                {participants.map((participant) => {
-                  const hasSubmittedFile = attachments.some(
-                    att => att.participant_id === participant.id || att.author_id === participant.id
-                  );
-                  
-                  // Get real voting status from backend
-                  const hasVoted = votingStatus[participant.id] === true;
-                  
-                  return (
-                  <div key={participant.id} className="table-row">
-                    <div className="table-cell">
-                      {participant.name}
-                    </div>
-                    <div className="table-cell">{participant.email}</div>
-                    <div className="table-cell">
-                      <span className="badge badge-secondary">
-                        {participant.role}
-                      </span>
-                    </div>
-                    <div className="table-cell">
-                      {hasSubmittedFile ? (
-                        <span className="badge badge-success">✓ Submitted</span>
-                      ) : (
-                        <span className="badge badge-warning">⏳ Pending</span>
-                      )}
-                    </div>
-                    <div className="table-cell">
-                      {event.stage === 'voting' || event.stage === 'results' ? (
-                        hasVoted ? (
-                          <span className="badge badge-success">✓ Voted</span>
+                <div className="table-body">
+                  {participants.map((participant) => {
+                    const hasSubmittedFile = attachments.some(
+                      att => att.participant_id === participant.id || att.author_id === participant.id
+                    );
+                    
+                    // Get real voting status from backend
+                    const hasVoted = votingStatus[participant.id] === true;
+                    
+                    return (
+                    <div key={participant.id} className="table-row">
+                      <div className="table-cell">
+                        {participant.name}
+                      </div>
+                      <div className="table-cell">{participant.email}</div>
+                      <div className="table-cell">
+                        <span className="badge badge-secondary">
+                          {participant.role}
+                        </span>
+                      </div>
+                      <div className="table-cell">
+                        {hasSubmittedFile ? (
+                          <span className="badge badge-success">✓ Submitted</span>
                         ) : (
-                          <span className="badge badge-warning">⏳ Not Voted</span>
-                        )
-                      ) : (
-                        <span className="badge badge-secondary">N/A</span>
-                      )}
+                          <span className="badge badge-warning">⏳ Pending</span>
+                        )}
+                      </div>
+                      <div className="table-cell">
+                        {event.stage === 'voting' || event.stage === 'results' ? (
+                          hasVoted ? (
+                            <span className="badge badge-success">✓ Voted</span>
+                          ) : (
+                            <span className="badge badge-warning">⏳ Not Voted</span>
+                          )
+                        ) : (
+                          <span className="badge badge-secondary">N/A</span>
+                        )}
+                      </div>
+                      <div className="table-cell">
+                        Registered
+                      </div>
                     </div>
-                    <div className="table-cell">
-                      Registered
-                    </div>
-                  </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
+
+        {/* Results Section (only show when in results stage) */}
+        {event.stage === 'results' && (
+          <div className="results-section">
+            <VotingResultsPanel eventId={event.id} />
+          </div>
+        )}
       </div>
     </div>
   );
