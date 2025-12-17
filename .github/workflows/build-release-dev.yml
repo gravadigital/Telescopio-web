@@ -34,5 +34,3 @@ jobs:
           build-args: |
             REACT_APP_API_URL=${{ steps.set-api-url.outputs.api_url }}
           tags: ${{ secrets.EXTERNAL_PRIVATE_REGISTRY }}/telescopio/web:${{ github.ref_name }}
-          cache-from: type=registry,ref=${{ secrets.EXTERNAL_PRIVATE_REGISTRY }}/telescopio/web:${{ github.ref_name }}
-          cache-to: type=registry,ref=${{ secrets.EXTERNAL_PRIVATE_REGISTRY }}/telescopio/web:buildcache,mode=max
