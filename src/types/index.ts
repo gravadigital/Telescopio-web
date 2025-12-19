@@ -178,4 +178,5 @@ export interface VotingStatistics {
   average_quality_score: number;
   participants_with_good_quality: number;
   participants_with_bad_quality: number;
+  participant_voting_status?: { [participantId: string]: boolean };
 }

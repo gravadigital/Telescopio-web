@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { EventService, AttachmentService } from '../services/api';
+import { EventService, AttachmentService, DistributedVotingService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Event, User } from '../types';
 import VotingResultsPanel from '../components/VotingResultsPanel';
@@ -87,16 +87,9 @@ const ManageEventPage: React.FC = () => {
       // Load voting statistics if in voting or results stage
       if (eventData.stage === 'voting' || eventData.stage === 'results') {
         try {
-          const response = await fetch(`http://localhost:8080/api/v1/events/${eventId}/voting-statistics`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('telescopio_token')}`
-            }
-          });
-          if (response.ok) {
-            const statsData = await response.json();
-            if (statsData.data && statsData.data.participant_voting_status) {
-              setVotingStatus(statsData.data.participant_voting_status);
-            }
+          const statsData = await DistributedVotingService.getVotingStatistics(eventId);
+          if (statsData && statsData.participant_voting_status) {
+            setVotingStatus(statsData.participant_voting_status);
           }
         } catch (err) {
           console.warn('Could not load voting statistics:', err);
