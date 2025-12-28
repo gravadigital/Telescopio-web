@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { EventService } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { EventService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import './CreateEventPage.css';
 
 interface CreateEventFormData {

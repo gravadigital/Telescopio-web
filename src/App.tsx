@@ -3,9 +3,9 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams, Link } from 'reac
 import './App.css';
 import Events from './components/Events';
 import Auth from './components/Auth';
-import EventDetailPage from './pages/EventDetailPage';
-import CreateEventPage from './pages/CreateEventPage';
-import ManageEventPage from './pages/ManageEventPage';
+import EventDetailPage from './pages/event-detail/EventDetailPage';
+import CreateEventPage from './pages/create-event/CreateEventPage';
+import ManageEventPage from './pages/manage-event/ManageEventPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Importar utilidades de testing en desarrollo

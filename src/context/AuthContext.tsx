@@ -1,7 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType, AuthProviderProps } from '../types';
+import useLocalStorage from '../hooks/useLocalStorage';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// ver donde ubicar esto
+const TELESCOPIO_USER_KEY = 'telescopio_user';
+const TELESCOPIO_TOKEN_KEY = 'telescopio_token';
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
@@ -12,14 +17,15 @@ export const useAuth = (): AuthContextType => {
 };
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const {setItem, getItem, removeItem} = useLocalStorage();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     // Check if there's a saved user and token in localStorage
-    const savedUser = localStorage.getItem('telescopio_user');
-    const savedToken = localStorage.getItem('telescopio_token');
+    const savedUser = getItem(TELESCOPIO_USER_KEY) as string;
+    const savedToken = getItem(TELESCOPIO_TOKEN_KEY) as string;
 
     console.log('🔍 AuthContext: Checking saved session', {
       hasSavedUser: !!savedUser,
@@ -28,14 +34,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (savedUser && savedToken) {
       try {
-        const parsedUser = JSON.parse(savedUser) as User;
+        const parsedUser = JSON.parse(savedUser) satisfies User;
         console.log('✅ Restored session for:', parsedUser.email);
         setUser(parsedUser);
         setToken(savedToken);
       } catch (error) {
         console.error('❌ Error parsing saved user:', error);
-        localStorage.removeItem('telescopio_user');
-        localStorage.removeItem('telescopio_token');
+        removeItem(TELESCOPIO_USER_KEY);
+        removeItem(TELESCOPIO_TOKEN_KEY);
       }
     } else {
       console.log('ℹ️ No saved session found. User must login.');
@@ -46,15 +52,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = (userData: User, authToken: string): void => {
     setUser(userData);
     setToken(authToken);
-    localStorage.setItem('telescopio_user', JSON.stringify(userData));
-    localStorage.setItem('telescopio_token', authToken);
+    setItem(TELESCOPIO_USER_KEY, JSON.stringify(userData));
+    setItem(TELESCOPIO_TOKEN_KEY, authToken);
   };
 
   const logout = (): void => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('telescopio_user');
-    localStorage.removeItem('telescopio_token');
+    removeItem(TELESCOPIO_USER_KEY);
+    removeItem(TELESCOPIO_TOKEN_KEY);
     // Redirect to home page after logout
     window.location.href = '/';
   };
@@ -64,7 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     const updatedUser = { ...user, ...updatedData };
     setUser(updatedUser);
-    localStorage.setItem('telescopio_user', JSON.stringify(updatedUser));
+    setItem(TELESCOPIO_USER_KEY, JSON.stringify(updatedUser));
   };
 
   const joinEvent = (eventId: string): void => {
@@ -77,7 +83,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     const updatedUser = { ...user, joinedEventIDs: updatedJoinedEvents };
     setUser(updatedUser);
-    localStorage.setItem('telescopio_user', JSON.stringify(updatedUser));
+    setItem(TELESCOPIO_USER_KEY, JSON.stringify(updatedUser));
   };
 
   const value: AuthContextType = {
