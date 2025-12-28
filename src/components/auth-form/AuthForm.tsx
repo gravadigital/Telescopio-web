@@ -3,17 +3,37 @@ import { FormData, User } from "../../types";
 import { UserService } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
-export default function AuthForm({ initialMode = "login" }) {
-  const [apiAvailable, setApiAvailable] = useState<boolean>(false);
-  const [isLogin, setIsLogin] = useState<boolean>(initialMode === "login");
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    email: "",
-  });
+type TAuthForm = {
+  mode: "login" | "register";
+  setMode: (mode: "login" | "register") => void;
+  formData: FormData;
+  setFormData: (formData: FormData) => void;
+  error: string;
+  setError: (error: string) => void;
+  apiAvailable: boolean;
+};
+
+function renderButtonLabel(loading: boolean, isLogin: boolean) {
+  if (loading) {
+    return "Processing...";
+  } else if (isLogin) {
+    return "🚀 Login";
+  } else {
+    return "✨ Register";
+  }
+}
+
+export default function AuthForm({
+  mode,
+  setMode,
+  formData,
+  setFormData,
+  error,
+  setError,
+  apiAvailable,
+}: TAuthForm) {
   const [loading, setLoading] = useState<boolean>(false);
   const { login } = useAuth();
-
-  const [error, setError] = useState<string>("");
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
     setFormData({
@@ -32,7 +52,7 @@ export default function AuthForm({ initialMode = "login" }) {
         throw new Error("Email is required");
       }
 
-      if (!isLogin && !formData.name) {
+      if (mode === "register" && !formData.name) {
         throw new Error("Name is required for registration");
       }
 
@@ -41,7 +61,7 @@ export default function AuthForm({ initialMode = "login" }) {
 
       if (apiAvailable) {
         try {
-          if (isLogin) {
+          if (mode === "login") {
             // Try to authenticate with real API (using demo password for now)
             const authResponse = await UserService.authenticateUser(
               formData.email,
@@ -71,7 +91,7 @@ export default function AuthForm({ initialMode = "login" }) {
             alert(
               `Registration successful!\n\nEmail: ${createResponse.user.email}\nPassword: demo123\n\nPlease login with these credentials.`
             );
-            setIsLogin(true);
+            setMode("login");
             setFormData({ name: "", email: formData.email }); // Keep email for convenience
           }
         } catch (apiError: any) {
@@ -109,7 +129,7 @@ export default function AuthForm({ initialMode = "login" }) {
 
   return (
     <form onSubmit={handleSubmit} className="auth-form">
-      {!isLogin && (
+      {mode === "register" && (
         <div className="form-group">
           <label htmlFor="name">Full name</label>
           <input
@@ -119,7 +139,7 @@ export default function AuthForm({ initialMode = "login" }) {
             value={formData.name}
             onChange={handleChange}
             placeholder="Your full name"
-            required={!isLogin}
+            required={mode === "register"}
           />
         </div>
       )}
@@ -140,7 +160,7 @@ export default function AuthForm({ initialMode = "login" }) {
       {error && <div className="error-message">{error}</div>}
 
       <button type="submit" className="auth-submit-btn" disabled={loading}>
-        {loading ? "Processing..." : isLogin ? "🚀 Login" : "✨ Register"}
+        {renderButtonLabel(loading, mode === "login")}
       </button>
     </form>
   );

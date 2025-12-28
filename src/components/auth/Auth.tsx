@@ -13,7 +13,6 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login" }) => {
     name: "",
     email: "",
   });
-  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [apiAvailable, setApiAvailable] = useState<boolean>(false);
 
@@ -24,7 +23,6 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login" }) => {
     };
     checkApi();
   }, []);
-
 
   const handleSwitchMode = (): void => {
     setIsLogin(!isLogin);
@@ -39,9 +37,20 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login" }) => {
       </div>
 
       <ApiStatusAuth apiAvailable={apiAvailable} />
-      <AuthForm />
+      <AuthForm
+        mode={isLogin ? "login" : "register"}
+        setMode={(mode) => setIsLogin(mode === "login")}
+        error={error}
+        setError={setError}
+        formData={formData}
+        setFormData={setFormData}
+        apiAvailable={apiAvailable}
+      />
       <p>{isLogin ? "Don't have an account? " : "Already have an account? "}</p>
-      <LinkButton label={isLogin ? "Register here" : "Login"} onClick={handleSwitchMode}/>
+      <LinkButton
+        label={isLogin ? "Register here" : "Login"}
+        onClick={handleSwitchMode}
+      />
 
       <div className="auth-info">
         <p className="demo-notice">
