@@ -1,8 +1,6 @@
-import React, { useState, FormEvent, ChangeEvent, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./Auth.css";
-import { useAuth } from "../../context/AuthContext";
-import { AuthProps, FormData, User } from "../../types";
-import { UserService } from "../../services/api";
+import { AuthProps, FormData } from "../../types";
 import ApiStatusAuth from "../api-status-auth/ApiStatusAuth";
 import AuthForm from "../auth-form/AuthForm";
 import LinkButton from "../link-button/LinkButton";
