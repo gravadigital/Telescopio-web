@@ -3,6 +3,7 @@ import './Auth.css';
 import { useAuth } from '../../context/AuthContext';
 import { AuthProps, FormData, User } from '../../types';
 import { UserService } from '../../services/api';
+import ApiStatusAuth from '../api-status-auth/ApiStatusAuth';
 
 
 const Auth: React.FC<AuthProps> = ({ onClose, initialMode = 'login' }) => {
@@ -123,17 +124,7 @@ const Auth: React.FC<AuthProps> = ({ onClose, initialMode = 'login' }) => {
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
-        <div className="api-status-auth">
-          {apiAvailable ? (
-            <div className="status-indicator online">
-              🟢 Connected to server
-            </div>
-          ) : (
-            <div className="status-indicator offline">
-              🟡 Demo mode
-            </div>
-          )}
-        </div>
+        <ApiStatusAuth apiAvailable={apiAvailable} />
 
         <form onSubmit={handleSubmit} className="auth-form">
           {!isLogin && (
