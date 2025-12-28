@@ -1,8 +1,8 @@
 import React, { JSX, useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
 import './App.css';
-import Events from './components/Events';
-import Auth from './components/Auth';
+import Events from './components/events/Events';
+import Auth from './components/auth/Auth';
 import EventDetailPage from './pages/event-detail/EventDetailPage';
 import CreateEventPage from './pages/create-event/CreateEventPage';
 import ManageEventPage from './pages/manage-event/ManageEventPage';

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { EventService, AttachmentService, DistributedVotingService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Event, User } from '../../types';
-import VotingResultsPanel from '../../components/VotingResultsPanel';
+import VotingResultsPanel from '../../components/voting-results-panel/VotingResultsPanel';
 import './ManageEventPage.css';
 
 const ManageEventPage: React.FC = () => {

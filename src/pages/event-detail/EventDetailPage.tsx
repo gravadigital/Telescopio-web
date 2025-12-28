@@ -2,10 +2,10 @@ import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Event } from '../../types';
 import { EventService, ApiHealthService, AttachmentService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import Participants from '../../components/Participants';
-import VotingConfigurationPanel from '../../components/VotingConfigurationPanel';
-import RankingVotePanel from '../../components/RankingVotePanel';
-import VotingResultsPanel from '../../components/VotingResultsPanel';
+import Participants from '../../components/participants/Participants';
+import VotingConfigurationPanel from '../../components/voting-configuration-panel/VotingConfigurationPanel';
+import RankingVotePanel from '../../components/ranking-vote-panel/RankingVotePanel';
+import VotingResultsPanel from '../../components/voting-results-panel/VotingResultsPanel';
 import './EventDetailPage.css';
 
 interface EventDetailPageProps {
