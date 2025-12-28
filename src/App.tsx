@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams, Link } from 'reac
 import './App.css';
 import Events from './components/events/Events';
 import Auth from './components/auth/Auth';
+import Modal from './components/modal/Modal';
 import EventDetailPage from './pages/event-detail/EventDetailPage';
 import CreateEventPage from './pages/create-event/CreateEventPage';
 import ManageEventPage from './pages/manage-event/ManageEventPage';
@@ -134,7 +135,9 @@ function AppContent(): JSX.Element {
       </Routes>
 
       {showAuthModal && (
-        <Auth onClose={() => setShowAuthModal(false)} initialMode={authMode} />
+        <Modal onClose={() => setShowAuthModal(false)}>
+          <Auth initialMode={authMode} />
+        </Modal>
       )}
     </div>
   );
