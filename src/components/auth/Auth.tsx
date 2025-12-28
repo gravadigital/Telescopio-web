@@ -1,8 +1,8 @@
-import React, { useState, FormEvent, ChangeEvent } from 'react';
+import React, { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import './Auth.css';
-import { useAuth } from '../context/AuthContext';
-import { AuthProps, FormData, User } from '../types';
-import { UserService } from '../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { AuthProps, FormData, User } from '../../types';
+import { UserService } from '../../services/api';
 
 
 const Auth: React.FC<AuthProps> = ({ onClose, initialMode = 'login' }) => {
@@ -17,7 +17,7 @@ const Auth: React.FC<AuthProps> = ({ onClose, initialMode = 'login' }) => {
 
   const { login } = useAuth();
 
-  React.useEffect(() => {
+  useEffect(() => {
     const checkApi = async () => {
       const isHealthy = true; 
       setApiAvailable(isHealthy);

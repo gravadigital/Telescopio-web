@@ -4,7 +4,7 @@ import useLocalStorage from '../hooks/useLocalStorage';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ver donde ubicar esto
+// ver si esto va en un config o algo asi
 const TELESCOPIO_USER_KEY = 'telescopio_user';
 const TELESCOPIO_TOKEN_KEY = 'telescopio_token';
 
