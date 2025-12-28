@@ -18,7 +18,7 @@ const Auth: React.FC<AuthProps> = ({ onClose, initialMode = 'login' }) => {
   const { login } = useAuth();
 
   useEffect(() => {
-    const checkApi = async () => {
+    const checkApi = () => {
       const isHealthy = true; 
       setApiAvailable(isHealthy);
     };
