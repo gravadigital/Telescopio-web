@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { EventService, AttachmentService, DistributedVotingService } from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { Event, User } from '../types';
-import VotingResultsPanel from '../components/VotingResultsPanel';
+import { EventService, AttachmentService, DistributedVotingService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { Event, User } from '../../types';
+import VotingResultsPanel from '../../components/VotingResultsPanel';
 import './ManageEventPage.css';
 
 const ManageEventPage: React.FC = () => {
