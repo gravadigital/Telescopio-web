@@ -15,6 +15,7 @@ export interface Event {
   stage: 'creation' | 'registration' | 'attachment_upload' | 'voting' | 'results';
   date: string;
   organizer?: string;
+  shareable_link?: string;
   status?: 'active' | 'cancelled' | 'completed';
   participant_ids?: string[];
   voteCount?: {
@@ -49,6 +50,7 @@ export interface ApiConfig {
     EVENT_REGISTER: (eventId: string) => string;
     EVENT_STAGE: (eventId: string) => string;
     EVENT_PARTICIPANTS: (eventId: string) => string;
+    EVENT_SHARE: (eventId: string) => string;
     EVENT_ATTACHMENT: (eventId: string, participantId: string) => string;
     EVENT_VOTE: (eventId: string) => string;
     EVENT_RESULTS: (eventId: string) => string;
@@ -93,6 +95,18 @@ export interface EventDetailProps {
 
 export interface AuthProviderProps {
   children: React.ReactNode;
+}
+
+export interface ShareableEventInfo {
+  title: string;
+  description: string;
+  share_url: string;
+  shareable_link: string;
+  image_url: string;
+  stage: string;
+  start_date: string;
+  end_date: string;
+  organizer: string;
 }
 
 // ========================================

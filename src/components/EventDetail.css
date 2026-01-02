@@ -71,6 +71,12 @@
   -webkit-text-fill-color: transparent;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .close-btn {
   background: rgba(123, 104, 238, 0.1);
   border: 1px solid rgba(123, 104, 238, 0.3);
