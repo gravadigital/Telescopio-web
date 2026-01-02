@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, AuthContextType, AuthProviderProps } from '../types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,6 +15,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [authModalCallback, setAuthModalCallback] = useState<((mode: 'login' | 'register') => void) | null>(null);
 
   useEffect(() => {
     // Check if there's a saved user and token in localStorage
@@ -69,16 +70,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const joinEvent = (eventId: string): void => {
     if (!user) return;
-    
+
     const updatedJoinedEvents = [...user.joinedEventIDs];
     if (!updatedJoinedEvents.includes(eventId)) {
       updatedJoinedEvents.push(eventId);
     }
-    
+
     const updatedUser = { ...user, joinedEventIDs: updatedJoinedEvents };
     setUser(updatedUser);
     localStorage.setItem('telescopio_user', JSON.stringify(updatedUser));
   };
+
+  const openAuthModal = useCallback((mode: 'login' | 'register'): void => {
+    if (authModalCallback) {
+      authModalCallback(mode);
+    }
+  }, [authModalCallback]);
+
+  // Function to register the modal callback from App component
+  const registerAuthModalHandler = useCallback((handler: (mode: 'login' | 'register') => void): void => {
+    setAuthModalCallback(() => handler);
+  }, []);
 
   const value: AuthContextType = {
     user,
@@ -88,11 +100,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateUser,
     joinEvent,
     isAuthenticated: !!user,
-    loading
+    loading,
+    openAuthModal
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ ...value, registerAuthModalHandler }}>
       {children}
     </AuthContext.Provider>
   );
