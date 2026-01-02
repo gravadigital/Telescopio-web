@@ -39,6 +39,8 @@ export interface AuthContextType {
   joinEvent: (eventId: string) => void;
   isAuthenticated: boolean;
   loading: boolean;
+  openAuthModal: (mode: 'login' | 'register') => void;
+  registerAuthModalHandler?: (handler: (mode: 'login' | 'register') => void) => void;
 }
 
 export interface ApiConfig {
@@ -192,4 +194,5 @@ export interface VotingStatistics {
   average_quality_score: number;
   participants_with_good_quality: number;
   participants_with_bad_quality: number;
+  participant_voting_status?: { [participantId: string]: boolean };
 }

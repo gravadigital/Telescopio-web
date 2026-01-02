@@ -292,10 +292,10 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
     return null;
   }
 
-  const canRegister = currentStage === 'registration' && isAuthenticated && !isUserRegistered;
+  const isEventCreator = user?.id === event.creator_id;
+  const canRegister = currentStage === 'registration' && isAuthenticated && !isUserRegistered && !isEventCreator;
   
   const canUploadAttachment = currentStage === 'attachment_upload' && isAuthenticated && isUserRegistered && !userHasSubmittedFile;
-  const isEventCreator = user?.id === event.creator_id;
   const isOrganizer = isEventCreator || user?.role === 'admin';
   const nextStage = getNextStage(currentStage);
   
@@ -415,7 +415,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
           )}
 
           {/* Registration Stage */}
-          {currentStage === 'registration' && isAuthenticated && (
+          {currentStage === 'registration' && canRegister && (
             <div className="register-section">
               {isUserRegistered ? (
                 <div className="registered-info">
