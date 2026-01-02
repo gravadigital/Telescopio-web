@@ -283,6 +283,20 @@ export const EventService = {
       console.error("❌ Failed to fetch event participants:", error);
       return [];
     }
+  },
+
+  async getShareableEventInfo(eventId: string): Promise<any> {
+    try {
+      const response = await apiRequest<{ data: any }>(
+        API_CONFIG.ENDPOINTS.EVENT_SHARE(eventId)
+      );
+      
+      console.log('✅ Shareable event info loaded:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Failed to fetch shareable event info:", error);
+      throw error;
+    }
   }
 };
 

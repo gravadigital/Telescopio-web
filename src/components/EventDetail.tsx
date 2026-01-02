@@ -7,6 +7,7 @@ import Participants from './Participants';
 import VotingConfigurationPanel from './VotingConfigurationPanel';
 import RankingVotePanel from './RankingVotePanel';
 import VotingResultsPanel from './VotingResultsPanel';
+import ShareButton from './ShareButton';
 
 // Componente de votación
 interface VotingSectionProps {
@@ -266,7 +267,10 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
       <div className="event-detail-modal">
         <div className="event-detail-header">
           <h2>{event.title || `Event ${event.id}`}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <div className="header-actions">
+            <ShareButton eventId={event.id} eventTitle={event.title} />
+            <button className="close-btn" onClick={onClose}>×</button>
+          </div>
         </div>
 
         <div className="event-detail-content">

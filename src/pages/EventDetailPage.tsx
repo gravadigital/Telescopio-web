@@ -6,6 +6,7 @@ import Participants from '../components/Participants';
 import VotingConfigurationPanel from '../components/VotingConfigurationPanel';
 import RankingVotePanel from '../components/RankingVotePanel';
 import VotingResultsPanel from '../components/VotingResultsPanel';
+import ShareButton from '../components/ShareButton';
 import './EventDetailPage.css';
 
 interface EventDetailPageProps {
@@ -330,6 +331,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
             <div className="event-title-row">
               <h1>{event.title}</h1>
               <div className="header-badges">
+                <ShareButton eventId={event.id} eventTitle={event.title} />
                 <span className={`badge badge-${
                   currentStage === 'registration' ? 'success' :
                   currentStage === 'attachment_upload' ? 'info' :

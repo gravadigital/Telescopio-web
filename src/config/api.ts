@@ -13,6 +13,7 @@ export const API_CONFIG: ApiConfig = {
     EVENT_REGISTER: (eventId: string) => `/api/v1/events/${eventId}/register`,
     EVENT_STAGE: (eventId: string) => `/api/v1/events/${eventId}/stage`,
     EVENT_PARTICIPANTS: (eventId: string) => `/api/v1/events/${eventId}/participants`,
+    EVENT_SHARE: (eventId: string) => `/api/v1/events/${eventId}/share`,
 
     // Attachments
     UPLOAD_ATTACHMENT: (eventId: string, participantId: string) =>
