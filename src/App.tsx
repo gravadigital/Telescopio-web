@@ -83,7 +83,7 @@ function EventDetailPageWrapper(): JSX.Element {
 function AppContent(): JSX.Element {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, registerAuthModalHandler } = useAuth();
 
   const handleAuthAction = (action: AuthAction): void => {
     if (action === 'logout') {
@@ -93,6 +93,16 @@ function AppContent(): JSX.Element {
       setShowAuthModal(true);
     }
   };
+
+  // Register the auth modal handler in the context
+  React.useEffect(() => {
+    if (registerAuthModalHandler) {
+      registerAuthModalHandler((mode: 'login' | 'register') => {
+        setAuthMode(mode);
+        setShowAuthModal(true);
+      });
+    }
+  }, [registerAuthModalHandler]);
 
   return (
     <div className="App">

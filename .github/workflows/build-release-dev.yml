@@ -23,7 +23,7 @@ jobs:
       - name: Set API URL for development
         id: set-api-url
         run: |
-          echo "api_url=https://api.telescopio.dev.grava.io" >> $GITHUB_OUTPUT
+          echo "api_url=https://api.telescope.dev.grava.io" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
