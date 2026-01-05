@@ -18,7 +18,7 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
   const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'all' | 'my'>('all');
 
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, openAuthModal } = useAuth();
 
   // Reload events when returning to /events page
   useEffect(() => {
@@ -112,8 +112,13 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
             <div className="events-controls">
               <button
                 className="btn btn-warning btn-md"
-                onClick={handleCreateEvent}
-                disabled={!isAuthenticated}
+                onClick={() => {
+                  if (isAuthenticated) {
+                    handleCreateEvent();
+                  } else {
+                    openAuthModal('login');
+                  }
+                }}
                 title={!isAuthenticated ? "Log in to create events" : ""}
               >
                 Create Event
@@ -250,27 +255,44 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                               {event.stage === 'registration' && (
                                 <button
                                   className="btn btn-primary btn-sm"
-                                  onClick={() => navigate(`/events/${event.id}`)}
-                                  disabled={!isAuthenticated}
+                                  onClick={() => {
+                                    if (isAuthenticated) {
+                                      navigate(`/events/${event.id}`);
+                                    } else {
+                                      openAuthModal('login');
+                                    }
+                                  }}
                                   title={!isAuthenticated ? "Log in to participate" : "Register for event"}
                                 >
-                                  📝 Register
+                                  Participe
                                 </button>
                               )}
-                              {event.stage === 'attachment_upload' && isAuthenticated && (
+                              {event.stage === 'attachment_upload' && (
                                 <button
                                   className="btn btn-info btn-sm"
-                                  onClick={() => navigate(`/events/${event.id}`)}
-                                  title="Upload your file"
+                                  onClick={() => {
+                                    if (isAuthenticated) {
+                                      navigate(`/events/${event.id}`);
+                                    } else {
+                                      openAuthModal('login');
+                                    }
+                                  }}
+                                  title={!isAuthenticated ? "Log in to upload files" : "Upload your file"}
                                 >
                                   📄 Upload File
                                 </button>
                               )}
-                              {event.stage === 'voting' && isAuthenticated && (
+                              {event.stage === 'voting' && (
                                 <button
                                   className="btn btn-success btn-sm"
-                                  onClick={() => navigate(`/events/${event.id}`)}
-                                  title="Submit your votes"
+                                  onClick={() => {
+                                    if (isAuthenticated) {
+                                      navigate(`/events/${event.id}`);
+                                    } else {
+                                      openAuthModal('login');
+                                    }
+                                  }}
+                                  title={!isAuthenticated ? "Log in to vote" : "Submit your votes"}
                                 >
                                   ✅ Vote
                                 </button>
