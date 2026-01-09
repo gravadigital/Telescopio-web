@@ -5,7 +5,7 @@ import ApiStatusAuth from "../api-status-auth/ApiStatusAuth";
 import AuthForm from "../auth-form/AuthForm";
 import LinkButton from "../link-button/LinkButton";
 
-const Auth: React.FC<AuthProps> = ({ initialMode = "login" }) => {
+const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
   const [isLogin, setIsLogin] = useState<boolean>(initialMode === "login");
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -43,6 +43,7 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login" }) => {
         formData={formData}
         setFormData={setFormData}
         apiAvailable={apiAvailable}
+        onLoginSuccess={onClose}
       />
       <p>{isLogin ? "Don't have an account? " : "Already have an account? "}</p>
       <LinkButton

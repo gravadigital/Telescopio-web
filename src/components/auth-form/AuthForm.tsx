@@ -1,17 +1,7 @@
 import React, { ChangeEvent, FormEvent, useState } from "react";
-import { FormData, User } from "../../types";
+import { TAuthForm, User } from "../../types";
 import { UserService } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-
-type TAuthForm = {
-  mode: "login" | "register";
-  setMode: (mode: "login" | "register") => void;
-  formData: FormData;
-  setFormData: (formData: FormData) => void;
-  error: string;
-  setError: (error: string) => void;
-  apiAvailable: boolean;
-};
 
 function renderButtonLabel(loading: boolean, isLogin: boolean) {
   if (loading) {
@@ -31,6 +21,7 @@ export default function AuthForm({
   error,
   setError,
   apiAvailable,
+  onLoginSuccess,
 }: TAuthForm) {
   const [loading, setLoading] = useState<boolean>(false);
   const { login } = useAuth();
@@ -75,6 +66,11 @@ export default function AuthForm({
               token ? `${token.substring(0, 30)}...` : "NO TOKEN"
             );
             login(userData, token);
+
+            // Close modal on successful login
+            if (onLoginSuccess) {
+              onLoginSuccess();
+            }
           } else {
             // Create new user
             const createResponse = await UserService.createUser({
@@ -122,6 +118,11 @@ export default function AuthForm({
       // Use a dummy token for demo mode
       const demoToken = "demo-token-" + Date.now();
       login(demoUserData, demoToken);
+
+      // Close modal on successful login (demo mode)
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
     } finally {
       setLoading(false);
     }

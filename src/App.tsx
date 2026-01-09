@@ -146,7 +146,7 @@ function AppContent(): JSX.Element {
 
       {showAuthModal && (
         <Modal onClose={() => setShowAuthModal(false)}>
-          <Auth initialMode={authMode} />
+          <Auth initialMode={authMode} onClose={() => setShowAuthModal(false)} />
         </Modal>
       )}
     </div>
