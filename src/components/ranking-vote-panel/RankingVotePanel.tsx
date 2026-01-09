@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { DistributedVotingService, AttachmentService } from '../services/api';
-import { Assignment, Attachment } from '../types';
+import { DistributedVotingService, AttachmentService } from '../../services/api';
+import { Assignment, Attachment } from '../../types';
 import './RankingVotePanel.css';
 
 interface RankingVotePanelProps {

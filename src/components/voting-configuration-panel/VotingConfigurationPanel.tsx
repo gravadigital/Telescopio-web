@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DistributedVotingService } from '../services/api';
+import { DistributedVotingService } from '../../services/api';
 import './VotingConfigurationPanel.css';
 
 interface VotingConfigurationPanelProps {

@@ -1,11 +1,12 @@
 import React, { JSX, useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
 import './App.css';
-import Events from './components/Events';
-import Auth from './components/Auth';
-import EventDetailPage from './pages/EventDetailPage';
-import CreateEventPage from './pages/CreateEventPage';
-import ManageEventPage from './pages/ManageEventPage';
+import Events from './components/events/Events';
+import Auth from './components/auth/Auth';
+import Modal from './components/modal/Modal';
+import EventDetailPage from './pages/event-detail/EventDetailPage';
+import CreateEventPage from './pages/create-event/CreateEventPage';
+import ManageEventPage from './pages/manage-event/ManageEventPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Importar utilidades de testing en desarrollo
@@ -144,7 +145,9 @@ function AppContent(): JSX.Element {
       </Routes>
 
       {showAuthModal && (
-        <Auth onClose={() => setShowAuthModal(false)} initialMode={authMode} />
+        <Modal onClose={() => setShowAuthModal(false)}>
+          <Auth initialMode={authMode} />
+        </Modal>
       )}
     </div>
   );
