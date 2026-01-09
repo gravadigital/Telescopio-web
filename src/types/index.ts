@@ -3,7 +3,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'participant' | 'organizer' | 'admin';
+  role: 'participant' | 'organizer' | 'admin' | 'creator';
   joinedEventIDs: string[];
   createdEventIDs: string[];
 }

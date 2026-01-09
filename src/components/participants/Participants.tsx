@@ -64,9 +64,10 @@ const Participants: React.FC<ParticipantsProps> = ({ eventId, eventTitle, onClos
 
   const getRoleDisplayName = (role: User['role']): string => {
     const roles: Record<User['role'], string> = {
-      'participant': 'Participant',
-      'organizer': 'Organizer',
-      'admin': 'Administrator'
+      'participant': 'Participante',
+      'organizer': 'Organizador',
+      'admin': 'Administrador',
+      'creator': 'Organizador'
     };
     return roles[role] || role;
   };
@@ -75,7 +76,8 @@ const Participants: React.FC<ParticipantsProps> = ({ eventId, eventTitle, onClos
     const icons: Record<User['role'], string> = {
       'participant': '👤',
       'organizer': '👨‍💼',
-      'admin': '👑'
+      'admin': '👑',
+      'creator': '👨‍💼'
     };
     return icons[role] || '👤';
   };
