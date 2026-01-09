@@ -57,9 +57,8 @@ export const apiRequest = async <T = any>(
   const url = `${API_CONFIG.BASE_URL}${endpoint}`;
 
   // Get JWT token from localStorage
-  // Note: The token is stored with JSON.stringify by useLocalStorage hook, so we need to parse it
-  const rawToken = localStorage.getItem('telescopio_token');
-  const token = rawToken ? JSON.parse(rawToken) : null;
+  // Note: The token is stored directly as a string (not JSON.stringify)
+  const token = localStorage.getItem('telescopio_token');
 
   console.log('🌐 API Request Debug:', {
     endpoint,
@@ -121,9 +120,8 @@ export const uploadFile = async (endpoint: string, formData: FormData): Promise<
   const url = `${API_CONFIG.BASE_URL}${endpoint}`;
 
   // Get JWT token from localStorage
-  // Note: The token is stored with JSON.stringify by useLocalStorage hook, so we need to parse it
-  const rawToken = localStorage.getItem('telescopio_token');
-  const token = rawToken ? JSON.parse(rawToken) : null;
+  // Note: The token is stored directly as a string (not JSON.stringify)
+  const token = localStorage.getItem('telescopio_token');
 
   try {
     const response = await fetch(url, {

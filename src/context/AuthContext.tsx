@@ -26,7 +26,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Check if there's a saved user and token in localStorage
     const savedUser = getItem(TELESCOPIO_USER_KEY) as string;
-    const savedToken = getItem(TELESCOPIO_TOKEN_KEY) as string;
+    // Read token directly from localStorage (not through useLocalStorage hook)
+    const savedToken = localStorage.getItem(TELESCOPIO_TOKEN_KEY);
 
     console.log('🔍 AuthContext: Checking saved session', {
       hasSavedUser: !!savedUser,
@@ -42,7 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('❌ Error parsing saved user:', error);
         removeItem(TELESCOPIO_USER_KEY);
-        removeItem(TELESCOPIO_TOKEN_KEY);
+        localStorage.removeItem(TELESCOPIO_TOKEN_KEY);
       }
     } else {
       console.log('ℹ️ No saved session found. User must login.');
@@ -71,14 +72,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(userData);
     setToken(authToken);
     setItem(TELESCOPIO_USER_KEY, JSON.stringify(userData));
-    setItem(TELESCOPIO_TOKEN_KEY, authToken);
+    // Save token directly to localStorage without JSON.stringify (since it's already a string)
+    localStorage.setItem(TELESCOPIO_TOKEN_KEY, authToken);
   };
 
   const logout = (): void => {
     setUser(null);
     setToken(null);
     removeItem(TELESCOPIO_USER_KEY);
-    removeItem(TELESCOPIO_TOKEN_KEY);
+    // Remove token directly from localStorage
+    localStorage.removeItem(TELESCOPIO_TOKEN_KEY);
     // Redirect to home page after logout
     window.location.href = '/';
   };
