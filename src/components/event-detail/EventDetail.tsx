@@ -1,12 +1,12 @@
 import React, { useState, ChangeEvent } from 'react';
 import './EventDetail.css';
-import { useAuth } from '../context/AuthContext';
-import { EventDetailProps, Event } from '../types';
-import { EventService, AttachmentService, VoteService } from '../services/api';
-import Participants from './Participants';
-import VotingConfigurationPanel from './VotingConfigurationPanel';
-import RankingVotePanel from './RankingVotePanel';
-import VotingResultsPanel from './VotingResultsPanel';
+import { useAuth } from '../../context/AuthContext';
+import { EventDetailProps, Event } from '../../types';
+import { EventService, AttachmentService, VoteService } from '../../services/api';
+import Participants from '../participants/Participants';
+import VotingConfigurationPanel from '../voting-configuration-panel/VotingConfigurationPanel';
+import RankingVotePanel from '../ranking-vote-panel/RankingVotePanel';
+import VotingResultsPanel from '../voting-results-panel/VotingResultsPanel';
 
 // Componente de votación
 interface VotingSectionProps {

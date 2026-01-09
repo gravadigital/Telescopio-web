@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Participants.css';
-import { EventService } from '../services/api';
-import { User } from '../types';
+import { EventService } from '../../services/api';
+import { User } from '../../types';
 
 interface ParticipantsProps {
   eventId: string;
