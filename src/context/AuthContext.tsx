@@ -50,6 +50,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // Listen for auth:logout events (e.g., when API clears the session due to 401)
+  useEffect(() => {
+    const handleAuthLogout = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('🔄 Session cleared by API - logging out user', customEvent.detail);
+      setUser(null);
+      setToken(null);
+    };
+
+    window.addEventListener('auth:logout', handleAuthLogout);
+    console.log('✅ AuthContext: Registered auth:logout listener');
+    return () => {
+      window.removeEventListener('auth:logout', handleAuthLogout);
+      console.log('🗑️ AuthContext: Unregistered auth:logout listener');
+    };
+  }, []);
+
   const login = (userData: User, authToken: string): void => {
     setUser(userData);
     setToken(authToken);

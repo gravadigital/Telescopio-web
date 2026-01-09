@@ -87,6 +87,17 @@ export interface AuthProps {
   initialMode?: 'login' | 'register';
 }
 
+export interface TAuthForm {
+  mode: 'login' | 'register';
+  setMode: (mode: 'login' | 'register') => void;
+  formData: FormData;
+  setFormData: (formData: FormData) => void;
+  error: string;
+  setError: (error: string) => void;
+  apiAvailable: boolean;
+  onLoginSuccess?: () => void;
+}
+
 export interface EventsProps {}
 
 export interface EventDetailProps {

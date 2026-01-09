@@ -57,7 +57,9 @@ export const apiRequest = async <T = any>(
   const url = `${API_CONFIG.BASE_URL}${endpoint}`;
 
   // Get JWT token from localStorage
-  const token = localStorage.getItem('telescopio_token');
+  // Note: The token is stored with JSON.stringify by useLocalStorage hook, so we need to parse it
+  const rawToken = localStorage.getItem('telescopio_token');
+  const token = rawToken ? JSON.parse(rawToken) : null;
 
   console.log('🌐 API Request Debug:', {
     endpoint,
@@ -93,12 +95,15 @@ export const apiRequest = async <T = any>(
         console.warn('🔒 Token inválido o expirado. Limpiando sesión...');
         localStorage.removeItem('telescopio_user');
         localStorage.removeItem('telescopio_token');
-        
-        // Recargar la página para que el AuthContext detecte la sesión limpia
-        if (endpoint !== API_CONFIG.ENDPOINTS.USER_AUTHENTICATE && 
-            endpoint !== API_CONFIG.ENDPOINTS.USERS) {
-          window.location.reload();
-        }
+
+        // Disparar un evento personalizado para que el AuthContext detecte el cambio
+        window.dispatchEvent(new CustomEvent('auth:logout', {
+          detail: { reason: 'token_expired' }
+        }));
+
+        // NO recargar la página automáticamente - dejar que el AuthContext maneje el estado
+        // El usuario verá el mensaje de "log in to participate" y puede volver a loguearse
+        // sin perder el contexto de navegación
       }
       
       throw new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
@@ -116,7 +121,9 @@ export const uploadFile = async (endpoint: string, formData: FormData): Promise<
   const url = `${API_CONFIG.BASE_URL}${endpoint}`;
 
   // Get JWT token from localStorage
-  const token = localStorage.getItem('telescopio_token');
+  // Note: The token is stored with JSON.stringify by useLocalStorage hook, so we need to parse it
+  const rawToken = localStorage.getItem('telescopio_token');
+  const token = rawToken ? JSON.parse(rawToken) : null;
 
   try {
     const response = await fetch(url, {
