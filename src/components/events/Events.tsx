@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';  
 import './Events.css';
-import { useAuth } from '../context/AuthContext';
-import { Event, EventsProps } from '../types';
-import { EventService, ApiHealthService } from '../services/api';
+import { Event, EventsProps } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { ApiHealthService, EventService } from '../../services/api';
 
 
 interface EventsComponentProps extends EventsProps {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { DistributedVotingService } from '../services/api';
-import { VotingResults, VotingStatistics } from '../types';
+import { DistributedVotingService } from '../../services/api';
+import { VotingResults, VotingStatistics } from '../../types';
 import './VotingResultsPanel.css';
 
 interface VotingResultsPanelProps {
