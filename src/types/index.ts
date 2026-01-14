@@ -12,7 +12,7 @@ export interface Event {
   id: string;
   title: string;
   description: string;
-  stage: 'creation' | 'registration' | 'attachment_upload' | 'voting' | 'results';
+  stage: 'creation' | 'participation' | 'voting' | 'results';
   date: string;
   organizer?: string;
   shareable_link?: string;
@@ -29,6 +29,9 @@ export interface Event {
   updated_at?: string;
   creator_id?: string;
 }
+
+// Type alias para reutilizar en otros lugares
+export type EventStage = Event['stage'];
 
 export interface AuthContextType {
   user: User | null;
