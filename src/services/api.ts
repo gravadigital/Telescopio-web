@@ -383,6 +383,27 @@ export const UserService = {
       console.error("Failed to authenticate user:", error);
       throw error;
     }
+  },
+
+  async getUserEvents(userId: string): Promise<string[]> {
+    try {
+      const response = await apiRequest<{ data: any[] }>(
+        `${API_CONFIG.ENDPOINTS.USERS}/${userId}/events`
+      );
+
+      if (!response || !response.data || !Array.isArray(response.data)) {
+        console.warn("Invalid response format from getUserEvents:", response);
+        return [];
+      }
+
+      console.log("✅ User events loaded from backend:", response.data.length);
+      
+      // Return only the event IDs
+      return response.data.map(event => event.id);
+    } catch (error) {
+      console.error("Failed to fetch user events:", error);
+      return [];
+    }
   }
 };
 

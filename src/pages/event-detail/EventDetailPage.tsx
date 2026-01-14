@@ -38,7 +38,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
   useEffect(() => {
     if (user && event) {
       // Check if user is registered in multiple ways:
-      // 1. User's joinedEventIDs includes this event
+      // 1. User's joinedEventIDs includes this event (synced from backend via AuthContext)
       // 2. Event's participant_ids includes this user
       const inJoinedEvents = user.joinedEventIDs.includes(event.id);
       const inParticipantList = event.participant_ids?.includes(user.id) || false;
@@ -54,12 +54,6 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
         stage: event.stage,
         participant_ids: event.participant_ids
       });
-      
-      // Auto-fix: If user is in participant list but not in joinedEvents, sync localStorage
-      if (inParticipantList && !inJoinedEvents && joinEvent) {
-        console.log('🔧 Auto-fixing localStorage: Adding event to joinedEventIDs');
-        joinEvent(event.id);
-      }
       
       setIsUserRegistered(userIsRegistered);
     }
