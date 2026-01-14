@@ -306,30 +306,44 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                                   </button>
                                 );
                               })()}
-                              {event.stage === 'voting' && (
-                                <button
-                                  className="btn btn-success btn-sm"
-                                  onClick={() => {
-                                    if (isAuthenticated) {
-                                      navigate(`/events/${event.id}`);
-                                    } else {
-                                      openAuthModal('login');
-                                    }
-                                  }}
-                                  title={!isAuthenticated ? "Log in to vote" : "Submit your votes"}
-                                >
-                                  ✅ Vote
-                                </button>
-                              )}
-                              {event.stage === 'results' && (
-                                <button
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => navigate(`/events/${event.id}`)}
-                                  title="View results"
-                                >
-                                  🏆 Results
-                                </button>
-                              )}
+                              {event.stage === 'voting' && (() => {
+                                // Solo mostrar botón de votación si el usuario está registrado
+                                const isInUserJoinedEvents = user?.joinedEventIDs?.includes(event.id);
+                                const isInEventParticipants = event.participant_ids?.includes(user?.id || '');
+                                const isUserRegistered = isInUserJoinedEvents || isInEventParticipants;
+                                
+                                if (isUserRegistered) {
+                                  return (
+                                    <button
+                                      className="btn btn-success btn-sm"
+                                      onClick={() => navigate(`/events/${event.id}`)}
+                                      title="Submit your votes"
+                                    >
+                                      ✅ Vote
+                                    </button>
+                                  );
+                                }
+                                return null;
+                              })()}
+                              {event.stage === 'results' && (() => {
+                                // Solo mostrar botón de resultados si el usuario está registrado
+                                const isInUserJoinedEvents = user?.joinedEventIDs?.includes(event.id);
+                                const isInEventParticipants = event.participant_ids?.includes(user?.id || '');
+                                const isUserRegistered = isInUserJoinedEvents || isInEventParticipants;
+                                
+                                if (isUserRegistered) {
+                                  return (
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      onClick={() => navigate(`/events/${event.id}`)}
+                                      title="View results"
+                                    >
+                                      🏆 Results
+                                    </button>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </>
                           )}
                         </div>
