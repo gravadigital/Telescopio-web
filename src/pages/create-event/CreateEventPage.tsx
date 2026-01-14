@@ -255,18 +255,6 @@ const CreateEventPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Validation Status (for debugging) */}
-            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', marginBottom: '1rem' }}>
-              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#fff' }}>Validation Status:</h4>
-              <div style={{ fontSize: '0.85rem', color: '#ddd' }}>
-                <div>✓ Name: {nameValid ? '✅ Valid' : `❌ Invalid (${formData.name.trim().length}/3-200 chars)`}</div>
-                <div>✓ Description: {descValid ? '✅ Valid' : `❌ Invalid (${formData.description.trim().length}/10-2000 chars)`}</div>
-                <div>✓ Date: {dateValid ? '✅ Valid' : '❌ Required'}</div>
-                <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
-                  Form Ready: {isFormValid ? '✅ YES' : '❌ NO'}
-                </div>
-              </div>
-            </div>
 
             {/* Form Actions */}
             <div className="form-actions">

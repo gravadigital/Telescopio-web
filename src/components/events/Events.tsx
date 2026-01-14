@@ -55,11 +55,6 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
     }
   };
 
-  const handleRegisterEvent = (eventId: string): void => {
-    // Navegar a la página de detalle del evento
-    navigate(`/events/${eventId}`);
-  };
-
   const handleRefresh = (): void => {
     checkApiAndFetchEvents();
   };
@@ -226,20 +221,6 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                       
                       <div className="table-cell cell-actions">
                         <div className="action-buttons">
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => {
-                              if (onViewEventDetail) {
-                                onViewEventDetail(event.id);
-                              } else {
-                                navigate(`/events/${event.id}`);
-                              }
-                            }}
-                            title="View full details"
-                          >
-                            Details
-                          </button>
-
                           {/* Show Manage button if user is the event creator */}
                           {user && event.creator_id === user.id ? (
                             <button
@@ -250,8 +231,21 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                               Manage
                             </button>
                           ) : (
-                            /* Show action button for participants based on stage */
                             <>
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => {
+                                  if (onViewEventDetail) {
+                                    onViewEventDetail(event.id);
+                                  } else {
+                                    navigate(`/events/${event.id}`);
+                                  }
+                                }}
+                                title="View full details"
+                              >
+                                Details
+                              </button>
+                              {/* Show action button for participants based on stage */}
                               {event.stage === 'registration' && (
                                 <button
                                   className="btn btn-primary btn-sm"

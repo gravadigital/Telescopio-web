@@ -68,6 +68,34 @@ function EventsPage(): JSX.Element {
 function EventDetailPageWrapper(): JSX.Element {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isCheckingOwnership, setIsCheckingOwnership] = React.useState(true);
+
+  // Check if user is the event owner and redirect to manage page
+  React.useEffect(() => {
+    const checkOwnership = async () => {
+      if (!eventId) return;
+      
+      try {
+        // Dynamically import EventService to check event ownership
+        const { EventService } = await import('./services/api');
+        const event = await EventService.getEventById(eventId);
+        
+        if (event && user && event.creator_id === user.id) {
+          // User is the creator, redirect to manage page
+          console.log('🔄 Redirecting organizer to manage page');
+          navigate(`/events/${eventId}/manage`, { replace: true });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking event ownership:', error);
+      } finally {
+        setIsCheckingOwnership(false);
+      }
+    };
+
+    checkOwnership();
+  }, [eventId, user, navigate]);
 
   const handleBack = (): void => {
     navigate('/events');
@@ -75,6 +103,14 @@ function EventDetailPageWrapper(): JSX.Element {
 
   if (!eventId) {
     return <div>Event not found</div>;
+  }
+
+  if (isCheckingOwnership) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   return <EventDetailPage eventId={eventId} onBack={handleBack} />;
