@@ -124,16 +124,22 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
         stage: event.stage
       });
       
+      // Auto-fix: If user is in participant list but not in joinedEvents, sync localStorage
+      if (inParticipantList && !inJoinedEvents && joinEvent) {
+        console.log('🔧 Auto-fixing localStorage: Adding event to joinedEventIDs');
+        joinEvent(event.id);
+      }
+      
       setIsUserRegistered(userIsRegistered);
     }
-  }, [user, event.id, event.participant_ids, event.stage]);
+  }, [user, event.id, event.participant_ids, event.stage, joinEvent]);
 
   // Solo el creador del evento puede administrarlo
   const isEventCreator = user?.id === event.creator_id;
   const isOrganizer = isEventCreator || user?.role === 'admin';
   
-  const canRegister = event.stage === 'registration' && isAuthenticated && !isUserRegistered && !isEventCreator;
-  const canUploadAttachment = event.stage === 'attachment_upload' && isAuthenticated && isUserRegistered;
+  const canRegister = event.stage === 'participation' && isAuthenticated && !isUserRegistered && !isEventCreator;
+  const canUploadAttachment = event.stage === 'participation' && isAuthenticated && isUserRegistered && !isEventCreator;
   
   console.log('🎯 User permissions:', {
     canRegister,
@@ -160,7 +166,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
   };
 
   const getNextStage = (stage: Event['stage']): Event['stage'] | null => {
-    const stageOrder: Event['stage'][] = ['creation', 'registration', 'attachment_upload', 'voting', 'results'];
+    const stageOrder: Event['stage'][] = ['creation', 'participation', 'voting', 'results'];
     const currentIndex = stageOrder.indexOf(stage);
     return currentIndex < stageOrder.length - 1 ? stageOrder[currentIndex + 1] : null;
   };
@@ -254,8 +260,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
   const getStageDisplayName = (stage: Event['stage']): string => {
     const stages: Record<Event['stage'], string> = {
       'creation': 'Creation',
-      'registration': 'Open Registration',
-      'attachment_upload': 'File Upload',
+      'participation': 'Participation',
       'voting': 'Voting',
       'results': 'Results'
     };
@@ -352,10 +357,9 @@ const EventDetail: React.FC<EventDetailProps> = ({ event, onClose, onRegistered 
               </div>
             )}
 
-            {isUserRegistered && event.stage === 'registration' && (
+            {isUserRegistered && event.stage === 'participation' && !canUploadAttachment && (
               <div className="registered-info">
                 <p>✅ You are already registered for this event</p>
-                <p>Wait for the file upload phase to open.</p>
               </div>
             )}
 
