@@ -139,15 +139,13 @@ const ManageEventPage: React.FC = () => {
   };
 
   const validateStageAdvance = (currentStage: Event['stage'], targetStage: Event['stage']): string | null => {
-    // Can't advance from registration if no participants
-    if (currentStage === 'registration' && participants.length === 0) {
+    // Can't advance from participation if no participants
+    if (currentStage === 'participation' && participants.length === 0) {
       return 'Cannot advance: No participants registered yet.';
     }
 
-    // Can't advance from attachment_upload if not all participants submitted
-    if (currentStage === 'attachment_upload' && attachments.length < participants.length) {
-      return `Cannot advance: Only ${attachments.length} of ${participants.length} participants have submitted files.`;
-    }
+    // Note: We no longer require all participants to submit files before advancing to voting
+    // This allows flexibility in the participation stage
 
     // Can't advance to results from voting without voting configuration
     if (currentStage === 'voting' && targetStage === 'results') {
@@ -191,7 +189,7 @@ const ManageEventPage: React.FC = () => {
   };
 
 const getNextStage = (currentStage: Event['stage']): Event['stage'] | null => {
-  const stageOrder: Event['stage'][] = ['creation', 'registration', 'attachment_upload', 'voting', 'results'];
+  const stageOrder: Event['stage'][] = ['creation', 'participation', 'voting', 'results'];
   const currentIndex = stageOrder.indexOf(currentStage);
 
   if (currentIndex >= 0 && currentIndex < stageOrder.length - 1) {
@@ -202,7 +200,7 @@ const getNextStage = (currentStage: Event['stage']): Event['stage'] | null => {
 };
 
 const getPreviousStage = (currentStage: Event['stage']): Event['stage'] | null => {
-  const stageOrder: Event['stage'][] = ['creation', 'registration', 'attachment_upload', 'voting', 'results'];
+  const stageOrder: Event['stage'][] = ['creation', 'participation', 'voting', 'results'];
   const currentIndex = stageOrder.indexOf(currentStage);
 
   if (currentIndex > 0) {
@@ -215,8 +213,7 @@ const getPreviousStage = (currentStage: Event['stage']): Event['stage'] | null =
 const getStageName = (stage: Event['stage']): string => {
   const stageNames: Record<Event['stage'], string> = {
     'creation': 'Creation',
-    'registration': 'Registration',
-    'attachment_upload': 'File Upload',
+    'participation': 'Participation',
     'voting': 'Voting',
     'results': 'Results'
   };
@@ -306,8 +303,7 @@ const getStageName = (stage: Event['stage']): string => {
             <div className="meta-item">
               <span className="meta-label">Current Stage:</span>
               <span className={`badge badge-${
-                event.stage === 'registration' ? 'success' :
-                event.stage === 'attachment_upload' ? 'info' :
+                event.stage === 'participation' ? 'success' :
                 event.stage === 'voting' ? 'warning' : 'primary'
               }`}>
                 {getStageName(event.stage)}
@@ -334,20 +330,20 @@ const getStageName = (stage: Event['stage']): string => {
 
           <div className="stage-flow">
             <div className={`stage-item ${
-              event.stage === 'registration' ? 'active' :
-              (event.stage === 'attachment_upload' || event.stage === 'voting' || event.stage === 'results') ? 'completed' : ''
+              event.stage === 'creation' ? 'active' :
+              (event.stage === 'participation' || event.stage === 'voting' || event.stage === 'results') ? 'completed' : ''
             }`}>
               <div className="stage-number">1</div>
-              <div className="stage-name">Registration</div>
+              <div className="stage-name">Creation</div>
             </div>
             <div className="stage-arrow">→</div>
 
             <div className={`stage-item ${
-              event.stage === 'attachment_upload' ? 'active' :
+              event.stage === 'participation' ? 'active' :
               (event.stage === 'voting' || event.stage === 'results') ? 'completed' : ''
             }`}>
               <div className="stage-number">2</div>
-              <div className="stage-name">File Upload</div>
+              <div className="stage-name">Participation</div>
             </div>
             <div className="stage-arrow">→</div>
 
@@ -407,9 +403,9 @@ const getStageName = (stage: Event['stage']): string => {
         {/* Participants Section (only show if not in results stage) */}
         {event.stage !== 'results' && (
           <div className="participants-section">
-            <h3>Registered Participants ({participants.length})</h3>
+            <h3>Registered Participants ({participants.filter(p => p.id !== event.creator_id).length})</h3>
 
-            {participants.length === 0 ? (
+            {participants.filter(p => p.id !== event.creator_id).length === 0 ? (
               <div className="empty-state">
                 <p>No participants have registered yet.</p>
                 <p>Share the event link to invite participants!</p>
@@ -426,7 +422,9 @@ const getStageName = (stage: Event['stage']): string => {
                 </div>
 
                 <div className="table-body">
-                  {participants.map((participant) => {
+                  {participants
+                    .filter(p => p.id !== event.creator_id)
+                    .map((participant) => {
                     const hasSubmittedFile = attachments.some(
                       att => att.participant_id === participant.id || att.author_id === participant.id
                     );

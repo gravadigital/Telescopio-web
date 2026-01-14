@@ -53,8 +53,8 @@ export const EventService = {
         status: event.status === "completed" || event.status === "active" || event.status === "cancelled"
           ? event.status as "completed" | "active" | "cancelled"
           : "active" as const,
-        stage: (event.stage as "creation" | "registration" | "attachment_upload" | "voting" | "results") || "registration",
-        participantIDs: event.participant_ids || [],
+        stage: (event.stage as "creation" | "participation" | "voting" | "results") || "participation",
+        participant_ids: event.participant_ids || [],
         voteCount: {
           yes: 0,
           maybe: 0,
@@ -176,7 +176,7 @@ export const EventService = {
         date: event.start_date || event.date,
         organizer: event.organizer || "Organizador por determinar",
         status: event.status || "active",
-        stage: event.stage || "registration",
+        stage: event.stage || "participation",
         participant_ids: event.participant_ids || [],
         voteCount: event.vote_count || { yes: 0, maybe: 0, no: 0 },
         attachmentCount: event.attachment_count || 0,
