@@ -66,8 +66,7 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
   const getStageDisplayName = (stage: Event['stage']): string => {
     const stages: Record<Event['stage'], string> = {
       'creation': 'Creation',
-      'registration': 'Open Registration',
-      'attachment_upload': 'File Upload',
+      'participation': 'Participation',
       'voting': 'Voting',
       'results': 'Completed'
     };
@@ -203,8 +202,7 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                       <div className="table-cell cell-stage">
                         <span className="cell-label">Stage:</span>
                         <span className={`badge badge-${
-                          event.stage === 'registration' ? 'success' : 
-                          event.stage === 'attachment_upload' ? 'info' : 
+                          event.stage === 'participation' ? 'success' : 
                           event.stage === 'voting' ? 'warning' : 'primary'
                         }`}>
                           {getStageDisplayName(event.stage)}
@@ -221,6 +219,42 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                       
                       <div className="table-cell cell-actions">
                         <div className="action-buttons">
+                          {(() => {
+                            // Check if user is the event creator
+                            const isEventCreator = user && event.creator_id === user.id;
+                            
+                            // Check if user is registered for conditional rendering
+                            const isInUserJoinedEvents = user?.joinedEventIDs?.includes(event.id);
+                            const isInEventParticipants = event.participant_ids?.includes(user?.id || '');
+                            const isUserRegisteredInEvent = isInUserJoinedEvents || isInEventParticipants;
+                            
+                            // Hide "Details" button ONLY if:
+                            // - User is registered (not creator)
+                            // - Event is in participation stage
+                            // - User is NOT the creator (creators need both Details and Manage buttons)
+                            const shouldShowGenericDetails = isEventCreator || !(event.stage === 'participation' && isUserRegisteredInEvent);
+                            
+                            return (
+                              <>
+                                {shouldShowGenericDetails && (
+                                  <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => {
+                                      if (onViewEventDetail) {
+                                        onViewEventDetail(event.id);
+                                      } else {
+                                        navigate(`/events/${event.id}`);
+                                      }
+                                    }}
+                                    title="View full details"
+                                  >
+                                    Details
+                                  </button>
+                                )}
+                              </>
+                            );
+                          })()}
+
                           {/* Show Manage button if user is the event creator */}
                           {user && event.creator_id === user.id ? (
                             <button
@@ -246,60 +280,78 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                                 Details
                               </button>
                               {/* Show action button for participants based on stage */}
-                              {event.stage === 'registration' && (
-                                <button
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => {
-                                    if (isAuthenticated) {
-                                      navigate(`/events/${event.id}`);
-                                    } else {
-                                      openAuthModal('login');
-                                    }
-                                  }}
-                                  title={!isAuthenticated ? "Log in to participate" : "Register for event"}
-                                >
-                                  Participe
-                                </button>
-                              )}
-                              {event.stage === 'attachment_upload' && (
-                                <button
-                                  className="btn btn-info btn-sm"
-                                  onClick={() => {
-                                    if (isAuthenticated) {
-                                      navigate(`/events/${event.id}`);
-                                    } else {
-                                      openAuthModal('login');
-                                    }
-                                  }}
-                                  title={!isAuthenticated ? "Log in to upload files" : "Upload your file"}
-                                >
-                                  📄 Upload File
-                                </button>
-                              )}
-                              {event.stage === 'voting' && (
-                                <button
-                                  className="btn btn-success btn-sm"
-                                  onClick={() => {
-                                    if (isAuthenticated) {
-                                      navigate(`/events/${event.id}`);
-                                    } else {
-                                      openAuthModal('login');
-                                    }
-                                  }}
-                                  title={!isAuthenticated ? "Log in to vote" : "Submit your votes"}
-                                >
-                                  ✅ Vote
-                                </button>
-                              )}
-                              {event.stage === 'results' && (
-                                <button
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => navigate(`/events/${event.id}`)}
-                                  title="View results"
-                                >
-                                  🏆 Results
-                                </button>
-                              )}
+                              {event.stage === 'participation' && (() => {
+                                // Check if user is registered using multiple sources
+                                const isInUserJoinedEvents = user?.joinedEventIDs?.includes(event.id);
+                                const isInEventParticipants = event.participant_ids?.includes(user?.id || '');
+                                const isUserRegistered = isInUserJoinedEvents || isInEventParticipants;
+                                
+                                if (isUserRegistered) {
+                                  return (
+                                    <button
+                                      className="btn btn-info btn-sm"
+                                      onClick={() => navigate(`/events/${event.id}`)}
+                                      title="View details and upload file"
+                                    >
+                                      📄 View Details
+                                    </button>
+                                  );
+                                }
+                                
+                                return (
+                                  <button
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() => {
+                                      if (isAuthenticated) {
+                                        navigate(`/events/${event.id}`);
+                                      } else {
+                                        openAuthModal('login');
+                                      }
+                                    }}
+                                    title={!isAuthenticated ? "Log in to participate" : "Participate in event"}
+                                  >
+                                    Participate
+                                  </button>
+                                );
+                              })()}
+                              {event.stage === 'voting' && (() => {
+                                // Solo mostrar botón de votación si el usuario está registrado
+                                const isInUserJoinedEvents = user?.joinedEventIDs?.includes(event.id);
+                                const isInEventParticipants = event.participant_ids?.includes(user?.id || '');
+                                const isUserRegistered = isInUserJoinedEvents || isInEventParticipants;
+                                
+                                if (isUserRegistered) {
+                                  return (
+                                    <button
+                                      className="btn btn-success btn-sm"
+                                      onClick={() => navigate(`/events/${event.id}`)}
+                                      title="Submit your votes"
+                                    >
+                                      ✅ Vote
+                                    </button>
+                                  );
+                                }
+                                return null;
+                              })()}
+                              {event.stage === 'results' && (() => {
+                                // Solo mostrar botón de resultados si el usuario está registrado
+                                const isInUserJoinedEvents = user?.joinedEventIDs?.includes(event.id);
+                                const isInEventParticipants = event.participant_ids?.includes(user?.id || '');
+                                const isUserRegistered = isInUserJoinedEvents || isInEventParticipants;
+                                
+                                if (isUserRegistered) {
+                                  return (
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      onClick={() => navigate(`/events/${event.id}`)}
+                                      title="View results"
+                                    >
+                                      🏆 Results
+                                    </button>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </>
                           )}
                         </div>

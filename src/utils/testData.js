@@ -40,26 +40,13 @@ export const createTestEvents = async () => {
   }
 };
 
-export const updateEventToRegistration = async (eventId) => {
+export const updateEventToParticipation = async (eventId) => {
   try {
     const result = await apiRequest(API_CONFIG.ENDPOINTS.EVENT_STAGE(eventId), {
       method: 'PATCH',
-      body: JSON.stringify({ stage: 'registration' })
+      body: JSON.stringify({ stage: 'participation' })
     });
-    console.log('Evento actualizado a registro:', result);
-    return result;
-  } catch (error) {
-    console.error('Error actualizando evento:', error);
-  }
-};
-
-export const updateEventToAttachmentUpload = async (eventId) => {
-  try {
-    const result = await apiRequest(API_CONFIG.ENDPOINTS.EVENT_STAGE(eventId), {
-      method: 'PATCH',
-      body: JSON.stringify({ stage: 'attachment_upload' })
-    });
-    console.log('Evento actualizado a subida de archivos:', result);
+    console.log('Evento actualizado a participación:', result);
     return result;
   } catch (error) {
     console.error('Error actualizando evento:', error);
@@ -75,22 +62,22 @@ export const showTestInstructions = () => {
 2. Ejecutar los siguientes comandos:
 
 // Crear eventos de prueba
-import { createTestEvents, updateEventToRegistration } from './src/utils/testData.js';
+import { createTestEvents, updateEventToParticipation } from './src/utils/testData.js';
 await createTestEvents();
 
 // Obtener la lista de eventos para ver sus IDs
 const events = await fetch('http://localhost:8080/api/events').then(r => r.json());
 console.log('Eventos:', events);
 
-// Actualizar un evento a fase de registro (usar el ID del evento)
-await updateEventToRegistration('EVENT_ID_AQUI');
+// Actualizar un evento a fase de participación (usar el ID del evento)
+await updateEventToParticipation('EVENT_ID_AQUI');
 
 3. FLUJO DE PRUEBA:
    - Ver eventos sin estar logueado ✅
    - Hacer login como usuario
-   - Registrarse en un evento en fase 'registration'
-   - Actualizar evento a fase 'attachment_upload'
-   - Subir un archivo
+   - Registrarse y subir archivo en fase 'participation' (unificada)
+   - Avanzar evento a fase 'voting'
+   - Votar
    
 4. COMANDOS ÚTILES:
    - Ver todos los eventos: fetch('http://localhost:8080/api/events').then(r => r.json())
@@ -108,8 +95,7 @@ export const clearAuth = () => {
 if (typeof window !== 'undefined') {
   window.telescopioTest = {
     createTestEvents,
-    updateEventToRegistration,
-    updateEventToAttachmentUpload,
+    updateEventToParticipation,
     showTestInstructions,
     clearAuth
   };

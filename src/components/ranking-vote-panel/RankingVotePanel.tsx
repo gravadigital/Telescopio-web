@@ -106,7 +106,12 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
         rankings
       );
 
+      console.log('✅ Votes submitted successfully, reloading assignment...');
       setSuccess('Your rankings have been submitted successfully!');
+      
+      // Reload the assignment to get the updated is_completed status
+      await loadAssignment();
+      
       onVotesSubmitted();
     } catch (err: any) {
       console.error('❌ Submit error:', err);
