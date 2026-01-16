@@ -15,6 +15,7 @@ interface CreateEventRequest {
   date: string;
   organizer?: string;
   author_id?: string; // Optional: send user ID as author
+  maxParticipants?: number; // Optional: max participants (1-100, default: 20)
 }
 
 interface CreateUserRequest {
@@ -61,6 +62,7 @@ export const EventService = {
           no: 0
         },
         attachmentCount: event.attachment_count || 0,
+        max_participants: event.max_participants,
         creator_id: event.author_id, // Map author_id from backend
         created_at: event.created_at,
         updated_at: event.updated_at
@@ -82,7 +84,8 @@ export const EventService = {
           stage: "voting" as const,
           participant_ids: [],
           voteCount: { yes: 5, maybe: 2, no: 0 },
-          attachmentCount: 3
+          attachmentCount: 3,
+          max_participants: 20
         },
         {
           id: "660e8400-e29b-41d4-a716-446655440000",
@@ -94,7 +97,8 @@ export const EventService = {
           stage: "results" as const,
           participant_ids: [],
           voteCount: { yes: 8, maybe: 1, no: 0 },
-          attachmentCount: 5
+          attachmentCount: 5,
+          max_participants: 20
         }
       ];
     }
@@ -109,13 +113,18 @@ export const EventService = {
       endDate.setDate(startDate.getDate() + 1);
 
       // NO enviar author_id - el backend lo toma del token JWT automáticamente
-      const requestBody = {
+      const requestBody: Record<string, any> = {
         name: eventData.name,
         description: eventData.description,
         start_date: eventData.date,
         end_date: endDate.toISOString().split("T")[0],
         organizer: eventData.organizer || ""
       };
+
+      // Agregar max_participants si se especificó
+      if (eventData.maxParticipants && eventData.maxParticipants >= 1 && eventData.maxParticipants <= 100) {
+        requestBody.max_participants = eventData.maxParticipants;
+      }
 
       console.log("Sending request body:", requestBody);
 
@@ -150,6 +159,7 @@ export const EventService = {
         participant_ids: [],
         voteCount: { yes: 0, maybe: 0, no: 0 },
         attachmentCount: 0,
+        max_participants: backendEvent.max_participants || eventData.maxParticipants || 20,
         creator_id: backendEvent.author_id
       };
     } catch (error) {
@@ -180,6 +190,7 @@ export const EventService = {
         participant_ids: event.participant_ids || [],
         voteCount: event.vote_count || { yes: 0, maybe: 0, no: 0 },
         attachmentCount: event.attachment_count || 0,
+        max_participants: event.max_participants,
         creator_id: event.author_id || event.creator_id,
         created_at: event.created_at,
         updated_at: event.updated_at
