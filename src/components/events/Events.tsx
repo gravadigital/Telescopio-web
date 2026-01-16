@@ -212,8 +212,7 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                       <div className="table-cell cell-participants">
                         <span className="cell-label">Participants:</span>
                         <span className="participants-count">
-                          {event.participant_ids?.length || 0}
-                          {event.max_participants && ` / ${event.max_participants}`}
+                          {event.participant_ids?.length || 0} / {event.max_participants || 20}
                         </span>
                       </div>
                       

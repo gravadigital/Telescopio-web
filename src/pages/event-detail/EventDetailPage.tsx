@@ -383,8 +383,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
             <div className="info-card">
               <label>👥 Participants</label>
               <p>
-                {event.participant_ids?.length || 0}
-                {event.max_participants && ` / ${event.max_participants}`}
+                {event.participant_ids?.length || 0} / {event.max_participants || 20}
                 {event.participant_ids && event.participant_ids.length > 0 && (
                   <button
                     className="view-participants-btn"

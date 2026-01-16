@@ -9,6 +9,7 @@ interface CreateEventFormData {
   description: string;
   date: string;
   organizer: string;
+  maxParticipants: number;
 }
 
 const CreateEventPage: React.FC = () => {
@@ -30,7 +31,8 @@ const CreateEventPage: React.FC = () => {
     name: '',
     description: '',
     date: '',
-    organizer: ''
+    organizer: '',
+    maxParticipants: 20
   });
   const [creating, setCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -44,11 +46,11 @@ const CreateEventPage: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     console.log(`Field changed: ${name} = ${value}`);
     setFormData({
       ...formData,
-      [name]: value
+      [name]: type === 'number' ? parseInt(value) || 1 : value
     });
   };
 
@@ -252,6 +254,24 @@ const CreateEventPage: React.FC = () => {
                   placeholder="Organization or person organizing the event"
                 />
                 <small className="form-help">Who is organizing this event? (Optional)</small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="maxParticipants">
+                  Maximum Participants
+                </label>
+                <input
+                  id="maxParticipants"
+                  className="form-input"
+                  type="number"
+                  name="maxParticipants"
+                  value={formData.maxParticipants}
+                  onChange={handleChange}
+                  min={1}
+                  max={100}
+                  placeholder="20"
+                />
+                <small className="form-help">Maximum number of participants allowed (1-100, default: 20)</small>
               </div>
             </div>
 

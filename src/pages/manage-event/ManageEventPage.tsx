@@ -312,7 +312,7 @@ const getStageName = (stage: Event['stage']): string => {
 
             <div className="meta-item">
               <span className="meta-label">Participants:</span>
-              <span className="meta-value">{participants.length}</span>
+              <span className="meta-value">{participants.length} / {event.max_participants || 20}</span>
             </div>
             
             <div className="meta-item">
