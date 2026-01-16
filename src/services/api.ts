@@ -53,8 +53,8 @@ export const EventService = {
         status: event.status === "completed" || event.status === "active" || event.status === "cancelled"
           ? event.status as "completed" | "active" | "cancelled"
           : "active" as const,
-        stage: (event.stage as "creation" | "registration" | "attachment_upload" | "voting" | "results") || "registration",
-        participantIDs: event.participant_ids || [],
+        stage: (event.stage as "creation" | "participation" | "voting" | "results") || "participation",
+        participant_ids: event.participant_ids || [],
         voteCount: {
           yes: 0,
           maybe: 0,
@@ -176,7 +176,7 @@ export const EventService = {
         date: event.start_date || event.date,
         organizer: event.organizer || "Organizador por determinar",
         status: event.status || "active",
-        stage: event.stage || "registration",
+        stage: event.stage || "participation",
         participant_ids: event.participant_ids || [],
         voteCount: event.vote_count || { yes: 0, maybe: 0, no: 0 },
         attachmentCount: event.attachment_count || 0,
@@ -382,6 +382,27 @@ export const UserService = {
     } catch (error) {
       console.error("Failed to authenticate user:", error);
       throw error;
+    }
+  },
+
+  async getUserEvents(userId: string): Promise<string[]> {
+    try {
+      const response = await apiRequest<{ data: any[] }>(
+        `${API_CONFIG.ENDPOINTS.USERS}/${userId}/events`
+      );
+
+      if (!response || !response.data || !Array.isArray(response.data)) {
+        console.warn("Invalid response format from getUserEvents:", response);
+        return [];
+      }
+
+      console.log("✅ User events loaded from backend:", response.data.length);
+      
+      // Return only the event IDs
+      return response.data.map(event => event.id);
+    } catch (error) {
+      console.error("Failed to fetch user events:", error);
+      return [];
     }
   }
 };

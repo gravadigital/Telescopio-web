@@ -15,7 +15,7 @@ interface EventDetailPageProps {
 }
 
 const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) => {
-  const { user, isAuthenticated, joinEvent } = useAuth();
+  const { user, isAuthenticated, joinEvent, openAuthModal } = useAuth();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -38,7 +38,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
   useEffect(() => {
     if (user && event) {
       // Check if user is registered in multiple ways:
-      // 1. User's joinedEventIDs includes this event
+      // 1. User's joinedEventIDs includes this event (synced from backend via AuthContext)
       // 2. Event's participant_ids includes this user
       const inJoinedEvents = user.joinedEventIDs.includes(event.id);
       const inParticipantList = event.participant_ids?.includes(user.id) || false;
@@ -57,7 +57,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
       
       setIsUserRegistered(userIsRegistered);
     }
-  }, [user, event]);
+  }, [user, event, joinEvent]);
 
   const fetchEventDetails = async (): Promise<void> => {
     setLoading(true);
@@ -80,7 +80,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
         setError(''); // Clear any previous errors if we got data
         
         // Check if current user has submitted a file
-        if (user && eventData.stage === 'attachment_upload') {
+        if (user && eventData.stage === 'participation') {
           try {
             const attachments = await AttachmentService.getEventAttachments(eventId);
             const userAttachment = attachments.find((att: any) => 
@@ -124,7 +124,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
   };
 
   const getNextStage = (stage: Event['stage']): Event['stage'] | null => {
-    const stageOrder: Event['stage'][] = ['creation', 'registration', 'attachment_upload', 'voting', 'results'];
+    const stageOrder: Event['stage'][] = ['creation', 'participation', 'voting', 'results'];
     const currentIndex = stageOrder.indexOf(stage);
     return currentIndex < stageOrder.length - 1 ? stageOrder[currentIndex + 1] : null;
   };
@@ -141,9 +141,16 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
 
     try {
       await EventService.registerForEvent(event.id, user.name, user.email);
-      setSuccess('You have successfully registered for the event!');
+      setSuccess('Successfully registered! You can now upload your file.');
       setIsUserRegistered(true);
-      joinEvent(event.id);
+      
+      // Update user in context
+      if (joinEvent) {
+        joinEvent(event.id);
+      }
+      
+      // Refresh event details
+      await fetchEventDetails();
     } catch (err) {
       console.error('Error registering for event:', err);
       setError('Failed to register for the event. Please try again.');
@@ -213,8 +220,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
   const getStageDisplayName = (stage: Event['stage']): string => {
     const stages: Record<Event['stage'], string> = {
       'creation': 'Creation',
-      'registration': 'Open Registration',
-      'attachment_upload': 'File Upload',
+      'participation': 'Participation',
       'voting': 'Voting',
       'results': 'Results'
     };
@@ -293,9 +299,9 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
   }
 
   const isEventCreator = user?.id === event.creator_id;
-  const canRegister = currentStage === 'registration' && isAuthenticated && !isUserRegistered && !isEventCreator;
+  const canRegister = currentStage === 'participation' && isAuthenticated && !isUserRegistered && !isEventCreator;
   
-  const canUploadAttachment = currentStage === 'attachment_upload' && isAuthenticated && isUserRegistered && !userHasSubmittedFile;
+  const canUploadAttachment = currentStage === 'participation' && isAuthenticated && isUserRegistered && !userHasSubmittedFile && !isEventCreator;
   const isOrganizer = isEventCreator || user?.role === 'admin';
   const nextStage = getNextStage(currentStage);
   
@@ -333,8 +339,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
               <div className="header-badges">
                 <ShareButton eventId={event.id} eventTitle={event.title} />
                 <span className={`badge badge-${
-                  currentStage === 'registration' ? 'success' :
-                  currentStage === 'attachment_upload' ? 'info' :
+                  currentStage === 'participation' ? 'success' :
                   currentStage === 'voting' ? 'warning' : 'primary'
                 }`}>
                   {getStageDisplayName(currentStage)}
@@ -414,79 +419,83 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
             </div>
           )}
 
-          {/* Registration Stage */}
-          {currentStage === 'registration' && canRegister && (
-            <div className="register-section">
-              {isUserRegistered ? (
-                <div className="registered-info">
-                  <h3>✅ You're Registered!</h3>
-                  <p>You've successfully registered for this event.</p>
-                  <p>Wait for the organizer to advance to the next stage.</p>
-                </div>
-              ) : (
-                <>
-                  <h3>📝 Event Registration</h3>
-                  <p>Register to participate in this event and submit your work.</p>
+          {/* Participation Stage - Unified Registration and Upload */}
+          {currentStage === 'participation' && !isEventCreator && (
+            <div className="participation-section">
+              {!isUserRegistered ? (
+                // User not registered - show registration
+                <div className="register-section">
+                  <h3>📝 Event Participation</h3>
+                  <p>Register to participate and upload your file.</p>
                   <button
                     className="primary-btn"
-                    onClick={handleRegister}
-                    disabled={loading || !canRegister}
+                    onClick={() => {
+                      if (isAuthenticated) {
+                        handleRegister();
+                      } else {
+                        openAuthModal('login');
+                      }
+                    }}
+                    disabled={loading}
                   >
-                    {loading ? 'Registering...' : 'Register for Event'}
+                    {loading ? 'Registering...' : 'Participate'}
                   </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Attachment Upload Stage */}
-          {currentStage === 'attachment_upload' && isUserRegistered && (
-            <div className="upload-section">
-              <h3>📎 Upload Your File</h3>
-              
-              {userHasSubmittedFile ? (
-                <div className="message success-message">
-                  ✅ You have already submitted your file for this event. Only one submission is allowed per participant.
                 </div>
               ) : (
-                <>
-                  <p>Upload your submission for this event.</p>
-
-                  <div className="file-upload">
-                    <input
-                      id="attachment-file"
-                      type="file"
-                      onChange={handleFileChange}
-                      disabled={uploadLoading || !canUploadAttachment}
-                      accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.doc,.docx"
-                    />
-
-                    {selectedFile && (
-                      <div className="file-preview">
-                        <strong>Selected file:</strong> {selectedFile.name}
-                        ({(selectedFile.size / 1024).toFixed(2)} KB)
-                      </div>
-                    )}
-
-                    <button
-                      className="primary-btn"
-                      onClick={handleUploadAttachment}
-                      disabled={uploadLoading || !selectedFile || !canUploadAttachment}
-                    >
-                      {uploadLoading ? 'Uploading...' : 'Upload File'}
-                    </button>
+                // User registered - show upload section
+                <div className="upload-section">
+                  <div className="registered-info">
+                    <h3>✅ You're Registered</h3>
+                    <p>You can now upload your file for this event.</p>
                   </div>
-                </>
-              )}
 
-              <div className="upload-info">
-                <h4>📋 Allowed file types:</h4>
-                <ul>
-                  <li>Images: JPEG, PNG, GIF, WebP</li>
-                  <li>Documents: PDF, TXT, DOC, DOCX</li>
-                  <li>Maximum size: 10 MB</li>
-                </ul>
-              </div>
+                  <h3>📎 Upload File</h3>
+                  
+                  {userHasSubmittedFile ? (
+                    <div className="message success-message">
+                      ✅ You have already submitted your file for this event. Only one submission is allowed per participant.
+                    </div>
+                  ) : (
+                    <>
+                      <p>Upload your submission for this event.</p>
+
+                      <div className="file-upload">
+                        <input
+                          id="attachment-file"
+                          type="file"
+                          onChange={handleFileChange}
+                          disabled={uploadLoading || !canUploadAttachment}
+                          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.doc,.docx"
+                        />
+
+                        {selectedFile && (
+                          <div className="file-preview">
+                            <strong>Selected file:</strong> {selectedFile.name}
+                            ({(selectedFile.size / 1024).toFixed(2)} KB)
+                          </div>
+                        )}
+
+                        <button
+                          className="primary-btn"
+                          onClick={handleUploadAttachment}
+                          disabled={uploadLoading || !selectedFile || !canUploadAttachment}
+                        >
+                          {uploadLoading ? 'Uploading...' : 'Upload File'}
+                        </button>
+                      </div>
+
+                      <div className="upload-info">
+                        <h4>📋 Allowed file types:</h4>
+                        <ul>
+                          <li>Images: JPEG, PNG, GIF, WebP</li>
+                          <li>Documents: PDF, TXT, DOC, DOCX</li>
+                          <li>Maximum size: 10 MB</li>
+                        </ul>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

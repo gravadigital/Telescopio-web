@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, AuthContextType, AuthProviderProps } from '../types';
 import useLocalStorage from '../hooks/useLocalStorage';
+import { UserService } from '../services/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -40,6 +41,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ Restored session for:', parsedUser.email);
         setUser(parsedUser);
         setToken(savedToken);
+
+        // Sync user's joined events with backend
+        syncUserEvents(parsedUser.id);
       } catch (error) {
         console.error('❌ Error parsing saved user:', error);
         removeItem(TELESCOPIO_USER_KEY);
@@ -50,6 +54,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     setLoading(false);
   }, []);
+
+  // Function to sync user events from backend
+  const syncUserEvents = async (userId: string): Promise<void> => {
+    try {
+      console.log('🔄 Syncing user events from backend...');
+      const eventIds = await UserService.getUserEvents(userId);
+      
+      if (eventIds.length > 0) {
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          
+          const updatedUser = { ...prevUser, joinedEventIDs: eventIds };
+          setItem(TELESCOPIO_USER_KEY, JSON.stringify(updatedUser));
+          console.log('✅ User events synced:', eventIds.length, 'events');
+          return updatedUser;
+        });
+      }
+    } catch (error) {
+      console.error('❌ Failed to sync user events:', error);
+    }
+  };
 
   // Listen for auth:logout events (e.g., when API clears the session due to 401)
   useEffect(() => {
@@ -74,6 +99,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setItem(TELESCOPIO_USER_KEY, JSON.stringify(userData));
     // Save token directly to localStorage without JSON.stringify (since it's already a string)
     localStorage.setItem(TELESCOPIO_TOKEN_KEY, authToken);
+    
+    // Sync user events after login
+    syncUserEvents(userData.id);
   };
 
   const logout = (): void => {
