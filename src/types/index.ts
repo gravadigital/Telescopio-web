@@ -28,6 +28,10 @@ export interface Event {
   created_at?: string;
   updated_at?: string;
   creator_id?: string;
+  
+  // Fechas estimativas de cierre de etapas (S-003)
+  participation_estimated_end_date?: string | null;
+  voting_estimated_end_date?: string | null;
 }
 
 // Type alias para reutilizar en otros lugares
@@ -69,6 +73,9 @@ export interface ApiConfig {
     VOTING_STATISTICS: (eventId: string) => string;
     UPLOAD_ATTACHMENT: (eventId: string, participantId: string) => string;
     EVENT_ATTACHMENTS: (eventId: string) => string;
+
+    // Fechas estimativas (S-003)
+    EVENT_ESTIMATED_DATE: (eventId: string) => string;
   };
 }
 

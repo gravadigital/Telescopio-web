@@ -193,7 +193,10 @@ export const EventService = {
         max_participants: event.max_participants,
         creator_id: event.author_id || event.creator_id,
         created_at: event.created_at,
-        updated_at: event.updated_at
+        updated_at: event.updated_at,
+        // Fechas estimativas (S-003)
+        participation_estimated_end_date: event.participation_estimated_end_date || null,
+        voting_estimated_end_date: event.voting_estimated_end_date || null
       };
     } catch (error) {
       console.warn("⚠️ Failed to fetch event by ID from API, checking fallback data:", error);
@@ -216,20 +219,99 @@ export const EventService = {
     }
   },
 
-  async updateEventStage(eventId: string, newStage: string): Promise<void> {
+  async updateEventStage(
+    eventId: string,
+    newStage: string,
+    estimatedEndDate?: string
+  ): Promise<Event> {
     try {
-      await apiRequest<any>(
+      const body: { stage: string; estimated_end_date?: string } = {
+        stage: newStage
+      };
+
+      if (estimatedEndDate) {
+        body.estimated_end_date = estimatedEndDate;
+      }
+
+      const response = await apiRequest<{ data: any }>(
         API_CONFIG.ENDPOINTS.EVENT_STAGE(eventId),
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ stage: newStage }),
+          body: JSON.stringify(body),
         }
       );
+
+      // Map response to Event type
+      const event = response.data;
+      return {
+        id: event.id,
+        title: event.name || event.title,
+        description: event.description,
+        date: event.start_date || event.date,
+        stage: event.stage,
+        participation_estimated_end_date: event.participation_estimated_end_date,
+        voting_estimated_end_date: event.voting_estimated_end_date,
+        creator_id: event.author_id,
+        updated_at: event.updated_at
+      } as Event;
     } catch (error) {
       console.error("Failed to update event stage:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update estimated end date for a specific stage (S-003)
+   * @param eventId - Event ID
+   * @param stage - 'participation' or 'voting'
+   * @param estimatedEndDate - New date in YYYY-MM-DD format
+   */
+  async updateEstimatedEndDate(
+    eventId: string,
+    stage: 'participation' | 'voting',
+    estimatedEndDate: string
+  ): Promise<{ previousDate: string | null; newDate: string }> {
+    try {
+      console.log('📅 Updating estimated end date:', {
+        eventId,
+        stage,
+        estimatedEndDate
+      });
+
+      const response = await apiRequest<{
+        data: {
+          event_id: string;
+          stage: string;
+          estimated_end_date: string;
+          previous_date: string;
+        };
+        message: string;
+        code: string;
+      }>(
+        API_CONFIG.ENDPOINTS.EVENT_ESTIMATED_DATE(eventId),
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            stage,
+            estimated_end_date: estimatedEndDate
+          }),
+        }
+      );
+
+      console.log('✅ Estimated end date updated:', response.data);
+
+      return {
+        previousDate: response.data.previous_date || null,
+        newDate: response.data.estimated_end_date
+      };
+    } catch (error) {
+      console.error("❌ Failed to update estimated end date:", error);
       throw error;
     }
   },

@@ -4,6 +4,8 @@ import { EventService, AttachmentService, DistributedVotingService } from '../..
 import { useAuth } from '../../context/AuthContext';
 import { Event, User } from '../../types';
 import VotingResultsPanel from '../../components/voting-results-panel/VotingResultsPanel';
+import StageAdvanceModal from '../../components/stage-advance-modal/StageAdvanceModal';
+import '../../components/stage-advance-modal/StageAdvanceModal.css';
 import './ManageEventPage.css';
 
 const ManageEventPage: React.FC = () => {
@@ -18,6 +20,11 @@ const ManageEventPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [updatingStage, setUpdatingStage] = useState<boolean>(false);
+  
+  // Estados para modales de fecha estimativa (S-003)
+  const [showStageModal, setShowStageModal] = useState<boolean>(false);
+  const [showEditDateModal, setShowEditDateModal] = useState<boolean>(false);
+  const [editingStage, setEditingStage] = useState<'participation' | 'voting' | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -28,6 +35,7 @@ const ManageEventPage: React.FC = () => {
     if (eventId) {
       loadEventData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, isAuthenticated, navigate]);
 
   const loadEventData = async (): Promise<void> => {
@@ -103,39 +111,103 @@ const ManageEventPage: React.FC = () => {
     }
   };
 
-  const handleUpdateStage = async (newStage: Event['stage']): Promise<void> => {
+  // Abrir modal para avanzar etapa (S-003)
+  const handleAdvanceStageClick = (): void => {
+    const next = getNextStage(event!.stage);
+    if (next) {
+      setShowStageModal(true);
+    }
+  };
+
+  // Confirmar avance de etapa con fecha estimativa (S-003)
+  const handleStageConfirm = async (estimatedEndDate?: string): Promise<void> => {
     if (!eventId || !event) return;
 
-    // Validations before advancing
-    const validationError = validateStageAdvance(event.stage, newStage);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+    const nextStage = getNextStage(event.stage);
+    if (!nextStage) return;
 
-    // Confirm if skipping stages
-    if (newStage === 'results' && event.stage !== 'voting') {
-      if (!window.confirm('⚠️ You are about to skip to Results without completing Voting. Are you sure?')) {
-        return;
-      }
+    // Validations before advancing
+    const validationError = validateStageAdvance(event.stage, nextStage);
+    if (validationError) {
+      throw new Error(validationError);
     }
 
     setUpdatingStage(true);
     setError('');
 
     try {
-      await EventService.updateEventStage(eventId, newStage);
+      await EventService.updateEventStage(eventId, nextStage, estimatedEndDate);
+      setShowStageModal(false);
 
       // Reload event data
       await loadEventData();
 
-      console.log(`Event stage updated to: ${newStage}`);
-    } catch (err) {
+      console.log(`Event stage updated to: ${nextStage}`);
+    } catch (err: any) {
       console.error('Error updating stage:', err);
-      setError('Error updating event stage. Please try again.');
+      throw new Error(err.message || 'Error updating event stage');
     } finally {
       setUpdatingStage(false);
     }
+  };
+
+  // Abrir modal para editar fecha (S-003)
+  const handleEditDeadlineClick = (stage: 'participation' | 'voting'): void => {
+    setEditingStage(stage);
+    setShowEditDateModal(true);
+  };
+
+  // Confirmar edición de fecha (S-003)
+  const handleEditDeadlineConfirm = async (newDate: string): Promise<void> => {
+    if (!eventId || !editingStage) return;
+
+    setUpdatingStage(true);
+
+    try {
+      await EventService.updateEstimatedEndDate(eventId, editingStage, newDate);
+      setShowEditDateModal(false);
+      setEditingStage(null);
+
+      // Reload event data
+      await loadEventData();
+    } catch (err: any) {
+      console.error('Error updating deadline:', err);
+      throw new Error(err.message || 'Error updating deadline');
+    } finally {
+      setUpdatingStage(false);
+    }
+  };
+
+  // Formatear fecha con tiempo relativo (S-003)
+  const formatEstimatedDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+
+    const diffTime = date.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const formattedDate = date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    let relative = '';
+    if (diffDays === 0) {
+      relative = '(today)';
+    } else if (diffDays === 1) {
+      relative = '(tomorrow)';
+    } else if (diffDays > 1) {
+      relative = `(in ${diffDays} days)`;
+    } else if (diffDays === -1) {
+      relative = '(yesterday)';
+    } else {
+      relative = `(${Math.abs(diffDays)} days ago)`;
+    }
+
+    return `${formattedDate} ${relative}`;
   };
 
   const validateStageAdvance = (currentStage: Event['stage'], targetStage: Event['stage']): string | null => {
@@ -321,6 +393,39 @@ const getStageName = (stage: Event['stage']): string => {
                 {new Set(attachments.map(a => a.participant_id)).size} / {participants.length}
               </span>
             </div>
+
+            {/* Fecha estimativa de cierre - S-003 */}
+            {event.stage === 'participation' && event.participation_estimated_end_date && (
+              <div className="meta-item deadline-meta">
+                <span className="meta-label">Participation Deadline:</span>
+                <span className="meta-value">
+                  {formatEstimatedDate(event.participation_estimated_end_date)}
+                  <button 
+                    className="btn-edit-deadline"
+                    onClick={() => handleEditDeadlineClick('participation')}
+                    title="Edit deadline"
+                  >
+                    ✏️
+                  </button>
+                </span>
+              </div>
+            )}
+
+            {event.stage === 'voting' && event.voting_estimated_end_date && (
+              <div className="meta-item deadline-meta">
+                <span className="meta-label">Voting Deadline:</span>
+                <span className="meta-value">
+                  {formatEstimatedDate(event.voting_estimated_end_date)}
+                  <button 
+                    className="btn-edit-deadline"
+                    onClick={() => handleEditDeadlineClick('voting')}
+                    title="Edit deadline"
+                  >
+                    ✏️
+                  </button>
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -365,7 +470,7 @@ const getStageName = (stage: Event['stage']): string => {
           <div className="stage-actions">
             {nextStage && (
               <button
-                onClick={() => handleUpdateStage(nextStage)}
+                onClick={handleAdvanceStageClick}
                 disabled={updatingStage}
                 className="btn btn-primary btn-lg"
               >
@@ -479,6 +584,104 @@ const getStageName = (stage: Event['stage']): string => {
             <VotingResultsPanel eventId={event.id} />
           </div>
         )}
+
+        {/* Stage Advance Modal - S-003 */}
+        {showStageModal && nextStage && (
+          <StageAdvanceModal
+            currentStage={event.stage}
+            nextStage={nextStage}
+            onConfirm={handleStageConfirm}
+            onCancel={() => setShowStageModal(false)}
+            isLoading={updatingStage}
+          />
+        )}
+
+        {/* Edit Deadline Modal - S-003 */}
+        {showEditDateModal && editingStage && (
+          <EditDeadlineModal
+            stage={editingStage}
+            currentDate={
+              editingStage === 'participation'
+                ? event.participation_estimated_end_date
+                : event.voting_estimated_end_date
+            }
+            onConfirm={handleEditDeadlineConfirm}
+            onCancel={() => {
+              setShowEditDateModal(false);
+              setEditingStage(null);
+            }}
+            isLoading={updatingStage}
+            formatEstimatedDate={formatEstimatedDate}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Componente inline para editar fecha - S-003
+const EditDeadlineModal: React.FC<{
+  stage: 'participation' | 'voting';
+  currentDate?: string | null;
+  onConfirm: (newDate: string) => Promise<void>;
+  onCancel: () => void;
+  isLoading: boolean;
+  formatEstimatedDate: (date: string) => string;
+}> = ({ stage, currentDate, onConfirm, onCancel, isLoading, formatEstimatedDate }) => {
+  const [newDate, setNewDate] = useState(currentDate || '');
+  const [error, setError] = useState('');
+
+  const minDate = new Date().toISOString().split('T')[0];
+
+  const handleConfirm = async () => {
+    setError('');
+    try {
+      await onConfirm(newDate);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update deadline');
+    }
+  };
+
+  return (
+    <div className="stage-modal-overlay" onClick={onCancel}>
+      <div className="stage-modal" onClick={e => e.stopPropagation()}>
+        <div className="stage-modal-header">
+          <h2>Edit {stage === 'participation' ? 'Participation' : 'Voting'} Deadline</h2>
+          <button className="stage-modal-close" onClick={onCancel}>×</button>
+        </div>
+        <div className="stage-modal-body">
+          {currentDate && (
+            <p className="current-date-info">
+              Current deadline: <strong>{formatEstimatedDate(currentDate)}</strong>
+            </p>
+          )}
+          <div className="stage-modal-date-field">
+            <label>New Deadline<span className="required">*</span></label>
+            <p className="field-hint">
+              Note: You can only postpone the deadline, not bring it forward.
+            </p>
+            <input
+              type="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              min={minDate}
+              disabled={isLoading}
+            />
+          </div>
+          {error && <div className="stage-modal-error">⚠️ {error}</div>}
+        </div>
+        <div className="stage-modal-footer">
+          <button className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
+            Cancel
+          </button>
+          <button 
+            className="btn btn-primary" 
+            onClick={handleConfirm} 
+            disabled={isLoading || !newDate}
+          >
+            {isLoading ? 'Updating...' : 'Update Deadline'}
+          </button>
+        </div>
       </div>
     </div>
   );

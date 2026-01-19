@@ -27,6 +27,7 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
 
   useEffect(() => {
     loadAssignment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, participantId]);
 
   const loadAssignment = async (): Promise<void> => {
