@@ -16,6 +16,7 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ eventId }) => {
 
   useEffect(() => {
     loadResults();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
   const loadResults = async (): Promise<void> => {

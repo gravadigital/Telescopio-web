@@ -845,6 +845,37 @@
   font-weight: 600;
 }
 
+/* Deadline Card Styles - S-003 */
+.info-card.deadline-card {
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), rgba(108, 92, 231, 0.05));
+  border: 1px solid rgba(108, 92, 231, 0.3);
+}
+
+.info-card.deadline-card .deadline-date {
+  font-weight: 500;
+  color: var(--color-white);
+}
+
+/* Deadline urgente (pasó o próximo <=2 días) */
+.info-card.deadline-card.urgent {
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
+  border-color: rgba(231, 76, 60, 0.3);
+}
+
+.info-card.deadline-card.urgent .deadline-date {
+  color: #e74c3c;
+}
+
+/* Deadline hoy */
+.info-card.deadline-card.today {
+  background: linear-gradient(135deg, rgba(241, 196, 15, 0.1), rgba(241, 196, 15, 0.05));
+  border-color: rgba(241, 196, 15, 0.3);
+}
+
+.info-card.deadline-card.today .deadline-date {
+  color: #f1c40f;
+}
+
 .view-participants-btn {
   background: linear-gradient(135deg,
     rgba(59, 130, 246, 0.8) 0%,

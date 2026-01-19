@@ -14,7 +14,7 @@ interface CreateEventFormData {
 
 const CreateEventPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user: currentUser } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   // Get tomorrow's date in YYYY-MM-DD format (local timezone)
   // Backend requires start_date to be in the future (not today)
