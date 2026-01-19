@@ -243,6 +243,81 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
     }
   };
 
+  // Formatear fecha estimativa con tiempo relativo (S-003)
+  const formatEstimatedDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const today = new Date();
+    
+    // Normalizar a medianoche para comparación de días
+    today.setHours(0, 0, 0, 0);
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = targetDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Formatear la fecha
+    const formattedDate = date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    // Calcular texto relativo
+    let relative = '';
+    if (diffDays === 0) {
+      relative = '(today)';
+    } else if (diffDays === 1) {
+      relative = '(tomorrow)';
+    } else if (diffDays > 1) {
+      relative = `(in ${diffDays} days)`;
+    } else if (diffDays === -1) {
+      relative = '(yesterday)';
+    } else {
+      relative = `(${Math.abs(diffDays)} days ago)`;
+    }
+    
+    return `${formattedDate} ${relative}`;
+  };
+
+  // Obtener fecha de deadline de la etapa actual (S-003)
+  const getCurrentStageDeadline = (): string | null => {
+    if (!event) return null;
+    
+    if (currentStage === 'participation' && event.participation_estimated_end_date) {
+      return event.participation_estimated_end_date;
+    }
+    
+    if (currentStage === 'voting' && event.voting_estimated_end_date) {
+      return event.voting_estimated_end_date;
+    }
+    
+    return null;
+  };
+
+  // Obtener clase CSS según urgencia del deadline (S-003)
+  const getDeadlineCardClass = (): string => {
+    const deadline = getCurrentStageDeadline();
+    if (!deadline) return 'info-card deadline-card';
+    
+    const date = new Date(deadline);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    
+    const diffDays = Math.round((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return 'info-card deadline-card urgent'; // Pasó
+    } else if (diffDays === 0) {
+      return 'info-card deadline-card today'; // Hoy
+    } else if (diffDays <= 2) {
+      return 'info-card deadline-card urgent'; // Próximo
+    }
+    
+    return 'info-card deadline-card';
+  };
+
   if (loading) {
     return (
       <div className="event-detail-page">
@@ -398,6 +473,16 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
               <label>👤 Organizer</label>
               <p>{event.organizer || 'Not specified'}</p>
             </div>
+            
+            {/* Stage Deadline - S-003 */}
+            {getCurrentStageDeadline() && (
+              <div className={getDeadlineCardClass()}>
+                <label>⏰ Stage Deadline</label>
+                <p className="deadline-date">
+                  {formatEstimatedDate(getCurrentStageDeadline()!)}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
