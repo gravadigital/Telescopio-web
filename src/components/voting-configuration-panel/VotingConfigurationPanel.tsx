@@ -42,6 +42,20 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
     setError('');
     setSuccess('');
 
+    // Validación local antes de enviar
+    const totalEvaluationsNeeded = totalAttachments * config.min_evaluations_per_file;
+    const totalEvaluationsAvailable = totalParticipants * config.attachments_per_evaluator;
+
+    if (totalEvaluationsAvailable < totalEvaluationsNeeded) {
+      setError(
+        `Insufficient evaluations: Need ${totalEvaluationsNeeded} (${totalAttachments} files × ${config.min_evaluations_per_file} min evaluations), ` +
+        `but only have ${totalEvaluationsAvailable} (${totalParticipants} participants × ${config.attachments_per_evaluator} files per evaluator). ` +
+        `Try reducing "Min Evaluations per File" or increasing "Attachments per Evaluator".`
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       // Intentar crear configuración
       try {

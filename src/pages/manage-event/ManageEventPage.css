@@ -215,6 +215,42 @@
   font-size: 1.5rem;
 }
 
+/* Voting Configuration Section */
+.voting-configuration-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.voting-configured-section {
+  background: rgba(40, 167, 69, 0.1);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.voting-configured-section .alert {
+  background: transparent;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.voting-configured-section h3 {
+  color: #28a745;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.voting-configured-section p {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
 /* Participants Section */
 .participants-section {
   background: rgba(255, 255, 255, 0.05);
@@ -237,7 +273,7 @@
 
 .participants-table .table-header {
   display: grid;
-  grid-template-columns: 2fr 2fr 1fr 1.5fr;
+  grid-template-columns: 1.5fr 2fr 1fr 1.2fr 1.2fr 1fr;
   gap: 1rem;
   padding: 1rem 1.5rem;
   background: rgba(255, 255, 255, 0.1);
@@ -255,7 +291,7 @@
 
 .participants-table .table-row {
   display: grid;
-  grid-template-columns: 2fr 2fr 1fr 1.5fr;
+  grid-template-columns: 1.5fr 2fr 1fr 1.2fr 1.2fr 1fr;
   gap: 1rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);

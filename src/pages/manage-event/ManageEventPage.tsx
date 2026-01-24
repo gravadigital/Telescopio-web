@@ -4,6 +4,7 @@ import { EventService, AttachmentService, DistributedVotingService } from '../..
 import { useAuth } from '../../context/AuthContext';
 import { Event, User } from '../../types';
 import VotingResultsPanel from '../../components/voting-results-panel/VotingResultsPanel';
+import VotingConfigurationPanel from '../../components/voting-configuration-panel/VotingConfigurationPanel';
 import StageAdvanceModal from '../../components/stage-advance-modal/StageAdvanceModal';
 import '../../components/stage-advance-modal/StageAdvanceModal.css';
 import './ManageEventPage.css';
@@ -20,6 +21,7 @@ const ManageEventPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [updatingStage, setUpdatingStage] = useState<boolean>(false);
+  const [votingConfigured, setVotingConfigured] = useState<boolean>(false);
   
   // Estados para modales de fecha estimativa (S-003)
   const [showStageModal, setShowStageModal] = useState<boolean>(false);
@@ -96,12 +98,28 @@ const ManageEventPage: React.FC = () => {
       if (eventData.stage === 'voting' || eventData.stage === 'results') {
         try {
           const statsData = await DistributedVotingService.getVotingStatistics(eventId);
+          console.log('📊 Voting statistics:', statsData);
+
           if (statsData && statsData.participant_voting_status) {
             setVotingStatus(statsData.participant_voting_status);
+
+            // Check if there are actual assignments (voting is configured)
+            // If participant_voting_status is not empty, voting is configured
+            const hasAssignments = Object.keys(statsData.participant_voting_status).length > 0;
+            setVotingConfigured(hasAssignments);
+
+            console.log('✅ Voting configured status:', hasAssignments);
+          } else {
+            setVotingConfigured(false);
           }
         } catch (err) {
           console.warn('Could not load voting statistics:', err);
+          // If we can't load stats, voting might not be configured yet
+          setVotingConfigured(false);
         }
+      } else {
+        // Not in voting/results stage, reset voting status
+        setVotingConfigured(false);
       }
     } catch (err) {
       console.error('Error loading event:', err);
@@ -504,6 +522,33 @@ const getStageName = (stage: Event['stage']): string => {
             )}
           </div>
         </div>
+
+        {/* Voting Configuration Section (only show in voting stage if not configured) */}
+        {event.stage === 'voting' && !votingConfigured && (
+          <div className="voting-configuration-section">
+            <VotingConfigurationPanel
+              eventId={event.id}
+              totalAttachments={attachments.length}
+              totalParticipants={participants.length}
+              onConfigured={() => {
+                setVotingConfigured(true);
+                loadEventData();
+              }}
+            />
+          </div>
+        )}
+
+        {/* Voting Configured Message */}
+        {event.stage === 'voting' && votingConfigured && (
+          <div className="voting-configured-section">
+            <div className="alert alert-success">
+              <h3>✅ Voting System Configured</h3>
+              <p>The distributed voting system has been configured successfully.</p>
+              <p>Participants can now rank their assigned attachments.</p>
+              <p>Once all participants have voted, you can advance to the "Results" stage.</p>
+            </div>
+          </div>
+        )}
 
         {/* Participants Section (only show if not in results stage) */}
         {event.stage !== 'results' && (
