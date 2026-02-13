@@ -16,7 +16,7 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'all' | 'my'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'my' | 'subscriptions'>('all');
 
   const { isAuthenticated, user, openAuthModal } = useAuth();
 
@@ -73,14 +73,34 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
     return stages[stage] || stage;
   };
 
-  // Separate events into "my events" and "all events"
+  // Separate events into three categories
   const myEvents = user ? events.filter(event => event.creator_id === user.id) : [];
-  // Exclude user's own events from 'All Events' tab
+  
+  // Subscriptions: events where user is participant but NOT creator
+  const subscribedEvents = user 
+    ? events.filter(event => {
+        const isParticipant = event.participant_ids?.includes(user.id) || 
+                            user.joinedEventIDs?.includes(event.id);
+        const isCreator = event.creator_id === user.id;
+        return isParticipant && !isCreator;
+      })
+    : [];
+  
+  // All events: exclude both own events and subscribed events
   const allEvents = user 
-    ? events.filter(event => event.creator_id !== user.id)
+    ? events.filter(event => {
+        const isCreator = event.creator_id === user.id;
+        const isParticipant = event.participant_ids?.includes(user.id) || 
+                            user.joinedEventIDs?.includes(event.id);
+        return !isCreator && !isParticipant;
+      })
     : events;
 
-  const displayEvents = activeTab === 'my' ? myEvents : allEvents;
+  const displayEvents = activeTab === 'my' 
+    ? myEvents 
+    : activeTab === 'subscriptions' 
+      ? subscribedEvents 
+      : allEvents;
 
   if (loading) {
     return (
@@ -128,8 +148,8 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
             </div>
           </div>
 
-          {/* Tabs for My Events / All Events */}
-          {isAuthenticated && myEvents.length > 0 && (
+          {/* Tabs for My Events / All Events / Subscriptions */}
+          {isAuthenticated && (myEvents.length > 0 || subscribedEvents.length > 0) && (
             <div className="events-tabs">
               <button
                 className={`tab-button ${activeTab === 'all' ? 'active' : ''}`}
@@ -142,6 +162,12 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                 onClick={() => setActiveTab('my')}
               >
                 My Events ({myEvents.length})
+              </button>
+              <button
+                className={`tab-button ${activeTab === 'subscriptions' ? 'active' : ''}`}
+                onClick={() => setActiveTab('subscriptions')}
+              >
+                My Subscriptions ({subscribedEvents.length})
               </button>
             </div>
           )}
@@ -157,8 +183,20 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
           
           {displayEvents.length === 0 && !loading && !error ? (
             <div className="empty-state">
-              <p>{activeTab === 'my' ? 'You have not created any events yet.' : 'No events available at this time.'}</p>
-              <p>{activeTab === 'my' ? 'Click "Create Event" to get started!' : 'Come back soon for new observation opportunities!'}</p>
+              <p>
+                {activeTab === 'my' 
+                  ? 'You have not created any events yet.' 
+                  : activeTab === 'subscriptions'
+                    ? 'You have not subscribed to any events yet.'
+                    : 'No events available at this time.'}
+              </p>
+              <p>
+                {activeTab === 'my' 
+                  ? 'Click "Create Event" to get started!' 
+                  : activeTab === 'subscriptions'
+                    ? 'Browse events and register to participate!'
+                    : 'Come back soon for new observation opportunities!'}
+              </p>
             </div>
           ) : (
             <div className="events-table-container">
