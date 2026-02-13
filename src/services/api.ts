@@ -21,6 +21,7 @@ interface CreateEventRequest {
 interface CreateUserRequest {
   name: string;
   email: string;
+  password: string;
 }
 
 interface ApiUser {

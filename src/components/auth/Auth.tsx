@@ -10,6 +10,7 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
+    password: "",
   });
   const [error, setError] = useState<string>("");
   const [apiAvailable, setApiAvailable] = useState<boolean>(false);
@@ -25,7 +26,7 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
   const handleSwitchMode = (): void => {
     setIsLogin(!isLogin);
     setError("");
-    setFormData({ name: "", email: "" });
+    setFormData({ name: "", email: "", password: "" });
   };
 
   return (

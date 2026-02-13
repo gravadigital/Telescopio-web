@@ -82,6 +82,7 @@ export interface ApiConfig {
 export interface FormData {
   name: string;
   email: string;
+  password?: string;
 }
 
 export interface ApiResponse<T = any> {

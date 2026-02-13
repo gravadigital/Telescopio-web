@@ -43,8 +43,17 @@ export default function AuthForm({
         throw new Error("Email is required");
       }
 
-      if (mode === "register" && !formData.name) {
-        throw new Error("Name is required for registration");
+      if (!formData.password) {
+        throw new Error("Password is required");
+      }
+
+      if (mode === "register") {
+        if (!formData.name) {
+          throw new Error("Name is required for registration");
+        }
+        if (formData.password.length < 8) {
+          throw new Error("Password must be at least 8 characters");
+        }
       }
 
       let userData: User;
@@ -53,14 +62,14 @@ export default function AuthForm({
       if (apiAvailable) {
         try {
           if (mode === "login") {
-            // Try to authenticate with real API (using demo password for now)
+            // Authenticate with real API
             const authResponse = await UserService.authenticateUser(
               formData.email,
-              "demo123"
+              formData.password
             );
             userData = authResponse.user;
             token = authResponse.token;
-            console.log("✅ User authenticated with API:", userData);
+            console.log("✅ User authenticated with API:", userData.email);
             console.log(
               "🔑 Token received:",
               token ? `${token.substring(0, 30)}...` : "NO TOKEN"
@@ -76,26 +85,44 @@ export default function AuthForm({
             const createResponse = await UserService.createUser({
               name: formData.name || "User",
               email: formData.email,
+              password: formData.password,
             });
             console.log(
               "✅ User created successfully:",
               createResponse.user.email
             );
 
-            // Show success message and switch to login mode
-            setError(""); // Clear any previous errors
-            alert(
-              `Registration successful!\n\nEmail: ${createResponse.user.email}\nPassword: demo123\n\nPlease login with these credentials.`
-            );
-            setMode("login");
-            setFormData({ name: "", email: formData.email }); // Keep email for convenience
+            // Auto-login after registration
+            login(createResponse.user, createResponse.token);
+            
+            // Close modal on successful registration
+            if (onLoginSuccess) {
+              onLoginSuccess();
+            }
           }
         } catch (apiError: any) {
-          console.error("API authentication failed:", apiError);
-          setError(
-            apiError.message ||
-              "Authentication failed. Please check your credentials."
-          );
+          console.error("API error:", apiError);
+          
+          // Extract error message from API response
+          let errorMessage = "Authentication failed. Please try again.";
+          
+          if (apiError.message) {
+            errorMessage = apiError.message;
+          } else if (apiError.error) {
+            errorMessage = apiError.error;
+          }
+          
+          // Handle specific error codes
+          if (errorMessage.includes("already exists") || errorMessage.includes("EMAIL_ALREADY_EXISTS")) {
+            errorMessage = "This email is already registered. Please login instead.";
+            setMode("login");
+          } else if (errorMessage.includes("Invalid email or password") || errorMessage.includes("INVALID_CREDENTIALS")) {
+            errorMessage = "Invalid email or password. Please try again.";
+          } else if (errorMessage.includes("password must be at least")) {
+            errorMessage = "Password must be at least 8 characters.";
+          }
+          
+          setError(errorMessage);
           setLoading(false);
           return;
         }
@@ -155,6 +182,20 @@ export default function AuthForm({
           onChange={handleChange}
           placeholder="your@email.com"
           required
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          value={formData.password || ""}
+          onChange={handleChange}
+          placeholder={mode === "register" ? "At least 8 characters" : "Your password"}
+          required
+          minLength={8}
         />
       </div>
 
