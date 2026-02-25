@@ -76,6 +76,9 @@ export interface ApiConfig {
 
     // Fechas estimativas (S-003)
     EVENT_ESTIMATED_DATE: (eventId: string) => string;
+
+    // Borrador de votación (S-005)
+    VOTE_DRAFT: (eventId: string, participantId: string) => string;
   };
 }
 

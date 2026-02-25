@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { DistributedVotingService, AttachmentService } from '../../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { DistributedVotingService, AttachmentService, VoteDraftService, DraftRanking } from '../../services/api';
 import { Assignment, Attachment } from '../../types';
 import './RankingVotePanel.css';
 
@@ -25,8 +25,17 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [attachments, setAttachments] = useState<AttachmentWithRank[]>([]);
 
+  type DraftStatus = 'idle' | 'saving' | 'saved' | 'error';
+  const [draftStatus, setDraftStatus] = useState<DraftStatus>('idle');
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     loadAssignment();
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      if (draftResetRef.current) clearTimeout(draftResetRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, participantId]);
 
@@ -50,6 +59,24 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
         assignmentData.attachment_ids.includes(att.id)
       );
       setAttachments(assignedAttachments);
+
+      // Restore draft if the assignment is not yet completed
+      if (!assignmentData.is_completed) {
+        try {
+          const draft = await VoteDraftService.getDraft(eventId, participantId);
+          if (draft && draft.rankings.length > 0) {
+            setAttachments(prev =>
+              prev.map(att => {
+                const saved = draft.rankings.find(r => r.attachment_id === att.id);
+                return saved ? { ...att, rank: saved.rank } : att;
+              })
+            );
+            console.log('📋 Draft restored:', draft.rankings.length, 'rankings');
+          }
+        } catch {
+          // Silent: if draft restoration fails, start with empty selections
+        }
+      }
     } catch (err: any) {
       console.error('❌ Failed to load assignment:', err);
       
@@ -66,11 +93,31 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
   };
 
   const handleRankChange = (attachmentId: string, rank: number): void => {
-    setAttachments(prev =>
-      prev.map(att =>
-        att.id === attachmentId ? { ...att, rank } : att
-      )
+    const updatedAttachments = attachments.map(att =>
+      att.id === attachmentId ? { ...att, rank } : att
     );
+    setAttachments(updatedAttachments);
+
+    // Debounced auto-save: cancel any pending save and schedule a new one
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    if (draftResetRef.current) clearTimeout(draftResetRef.current);
+    setDraftStatus('saving');
+
+    draftTimerRef.current = setTimeout(async () => {
+      try {
+        const rankings: DraftRanking[] = updatedAttachments
+          .filter(att => att.rank !== undefined)
+          .map(att => ({ attachment_id: att.id, rank: att.rank! }));
+
+        await VoteDraftService.saveDraft(eventId, participantId, rankings);
+        setDraftStatus('saved');
+
+        // Auto-hide the indicator after 3 seconds
+        draftResetRef.current = setTimeout(() => setDraftStatus('idle'), 3000);
+      } catch {
+        setDraftStatus('error');
+      }
+    }, 500);
   };
 
   const handleSubmit = async (): Promise<void> => {
@@ -211,6 +258,14 @@ const RankingVotePanel: React.FC<RankingVotePanelProps> = ({
 
       {error && <div className="message error-message">{error}</div>}
       {success && <div className="message success-message">{success}</div>}
+
+      {draftStatus !== 'idle' && (
+        <div className={`draft-status draft-status--${draftStatus}`}>
+          {draftStatus === 'saving' && '⏳ Saving draft...'}
+          {draftStatus === 'saved'  && '✓ Draft saved'}
+          {draftStatus === 'error'  && '⚠ Draft not saved — check your connection'}
+        </div>
+      )}
 
       <button
         className="primary-btn"
