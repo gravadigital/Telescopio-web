@@ -712,6 +712,62 @@ export const DistributedVotingService = {
   }
 };
 
+// ========================================
+// Vote Draft Service (S-005)
+// ========================================
+
+export interface DraftRanking {
+  attachment_id: string;
+  rank: number;
+}
+
+export interface VoteDraftResponse {
+  assignment_id: string;
+  participant_id: string;
+  rankings: DraftRanking[];
+  updated_at: string;
+}
+
+export const VoteDraftService = {
+  /**
+   * Restore a participant's saved draft rankings. Returns null if no draft exists yet.
+   */
+  async getDraft(
+    eventId: string,
+    participantId: string
+  ): Promise<VoteDraftResponse | null> {
+    try {
+      const response = await apiRequest<{ data: VoteDraftResponse }>(
+        API_CONFIG.ENDPOINTS.VOTE_DRAFT(eventId, participantId)
+      );
+      return response.data;
+    } catch (err: any) {
+      if (err?.message?.includes('404') || err?.message?.includes('DRAFT_NOT_FOUND')) {
+        return null;
+      }
+      throw err;
+    }
+  },
+
+  /**
+   * Save (upsert) the participant's current ranking selections as a draft.
+   */
+  async saveDraft(
+    eventId: string,
+    participantId: string,
+    rankings: DraftRanking[]
+  ): Promise<void> {
+    await apiRequest(
+      API_CONFIG.ENDPOINTS.VOTE_DRAFT(eventId, participantId),
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rankings }),
+      }
+    );
+  },
+};
+
 export const ApiHealthService = {
   async checkHealth(): Promise<boolean> {
     return checkApiHealth();

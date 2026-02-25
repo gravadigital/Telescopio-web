@@ -44,6 +44,10 @@ export const API_CONFIG: ApiConfig = {
     // Fechas estimativas (S-003)
     EVENT_ESTIMATED_DATE: (eventId: string) =>
       `/api/v1/events/${eventId}/estimated-end-date`,
+
+    // Borrador de votación (S-005)
+    VOTE_DRAFT: (eventId: string, participantId: string) =>
+      `/api/v1/events/${eventId}/participants/${participantId}/vote-draft`,
   }
 };
 
