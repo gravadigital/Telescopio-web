@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Event } from '../../types';
 import { EventService, ApiHealthService, AttachmentService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,7 @@ import RankingVotePanel from '../../components/ranking-vote-panel/RankingVotePan
 import VotingResultsPanel from '../../components/voting-results-panel/VotingResultsPanel';
 import './EventDetailPage.css';
 import ShareButton from '../../components/ShareButton';
+import Modal from '../../components/modal/Modal';
 
 interface EventDetailPageProps {
   eventId: string;
@@ -23,6 +24,8 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
   const [success, setSuccess] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
+  const [showUploadConfirm, setShowUploadConfirm] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUserRegistered, setIsUserRegistered] = useState<boolean>(false);
   const [showParticipants, setShowParticipants] = useState<boolean>(false);
   const [currentStage, setCurrentStage] = useState<Event['stage'] | null>(null);
@@ -183,7 +186,18 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
     }
   };
 
+  const handleClearFile = (): void => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleUploadClick = (): void => {
+    if (!selectedFile) return;
+    setShowUploadConfirm(true);
+  };
+
   const handleUploadAttachment = async (): Promise<void> => {
+    setShowUploadConfirm(false);
     if (!selectedFile || !event) {
       setError('Select a file first');
       return;
@@ -202,9 +216,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
       await AttachmentService.uploadAttachment(event.id, user.id, selectedFile);
       setSuccess('File uploaded successfully!');
       setSelectedFile(null);
-
-      const fileInput = document.getElementById('attachment-file') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = '';
       
       // Reload event data to update attachment count
       await fetchEventDetails();
@@ -545,6 +557,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
 
                       <div className="file-upload">
                         <input
+                          ref={fileInputRef}
                           id="attachment-file"
                           type="file"
                           onChange={handleFileChange}
@@ -554,14 +567,25 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
 
                         {selectedFile && (
                           <div className="file-preview">
-                            <strong>Selected file:</strong> {selectedFile.name}
-                            ({(selectedFile.size / 1024).toFixed(2)} KB)
+                            <div className="file-preview-info">
+                              <div className="file-preview-details">
+                                <p className="file-preview-name">{selectedFile.name}</p>
+                                <p className="file-preview-size">{(selectedFile.size / 1024).toFixed(2)} KB</p>
+                              </div>
+                            </div>
+                            <button
+                              className="file-clear-btn"
+                              onClick={handleClearFile}
+                              title="Remove selected file"
+                            >
+                              ×
+                            </button>
                           </div>
                         )}
 
                         <button
                           className="primary-btn"
-                          onClick={handleUploadAttachment}
+                          onClick={handleUploadClick}
                           disabled={uploadLoading || !selectedFile || !canUploadAttachment}
                         >
                           {uploadLoading ? 'Uploading...' : 'Upload File'}
@@ -623,6 +647,28 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
           )}
         </div>
       </div>
+
+      {/* Upload confirmation modal */}
+      {showUploadConfirm && selectedFile && (
+        <Modal onClose={() => setShowUploadConfirm(false)}>
+          <div className="upload-confirm-modal">
+            <h3>Confirm upload</h3>
+            <p>Are you sure you want to upload this file?</p>
+            <div className="upload-confirm-file">
+              <span className="upload-confirm-filename">{selectedFile.name}</span>
+              <span className="upload-confirm-filesize">{(selectedFile.size / 1024).toFixed(2)} KB</span>
+            </div>
+            <div className="upload-confirm-actions">
+              <button className="secondary-btn" onClick={() => setShowUploadConfirm(false)}>
+                Cancel
+              </button>
+              <button className="primary-btn" onClick={handleUploadAttachment}>
+                Upload
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
