@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from "react";
 import "./Auth.css";
-import { AuthProps, FormData } from "../../types";
+import { AuthProps, FormData, User } from "../../types";
 import ApiStatusAuth from "../api-status-auth/ApiStatusAuth";
 import AuthForm from "../auth-form/AuthForm";
 import LinkButton from "../link-button/LinkButton";
+import GoogleLoginButton from "./GoogleLoginButton";
+import UsernameModal from "./UsernameModal";
+import { useAuth } from "../../context/AuthContext";
+import { GoogleAuthService } from "../../services/api";
+
+type OAuthState =
+  | { phase: 'idle' }
+  | { phase: 'verifying' }
+  | { phase: 'new_user'; googleToken: string; suggestedName: string }
+  | { phase: 'error'; message: string };
 
 const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
   const [isLogin, setIsLogin] = useState<boolean>(initialMode === "login");
@@ -14,6 +24,8 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
   });
   const [error, setError] = useState<string>("");
   const [apiAvailable, setApiAvailable] = useState<boolean>(false);
+  const [oauthState, setOauthState] = useState<OAuthState>({ phase: 'idle' });
+  const { login } = useAuth();
 
   useEffect(() => {
     const checkApi = () => {
@@ -29,11 +41,77 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
     setFormData({ name: "", email: "", password: "" });
   };
 
+  const handleGoogleSuccess = async (credential: string) => {
+    setOauthState({ phase: 'verifying' });
+    try {
+      const result = await GoogleAuthService.verify(credential);
+      if (result.status === 'existing_user' && result.token && result.user) {
+        const user: User = {
+          id: result.user.id,
+          name: result.user.username,
+          email: result.user.email,
+          role: 'participant',
+          joinedEventIDs: [],
+          createdEventIDs: [],
+        };
+        login(user, result.token);
+        onClose?.();
+      } else if (result.status === 'new_user') {
+        setOauthState({
+          phase: 'new_user',
+          googleToken: credential,
+          suggestedName: result.profile?.suggested_name || '',
+        });
+      }
+    } catch (err: any) {
+      setOauthState({
+        phase: 'error',
+        message: err.message || 'Error al autenticar con Google',
+      });
+    }
+  };
+
+  const handleGoogleError = (err: unknown) => {
+    setOauthState({
+      phase: 'error',
+      message: 'No se pudo conectar con Google. Intenta de nuevo.',
+    });
+  };
+
+  if (oauthState.phase === 'new_user') {
+    return (
+      <UsernameModal
+        googleToken={oauthState.googleToken}
+        suggestedName={oauthState.suggestedName}
+        onSuccess={() => onClose?.()}
+        onClose={() => setOauthState({ phase: 'idle' })}
+      />
+    );
+  }
+
   return (
     <div className="auth-container">
       <div className="auth-header">
         <h2>🔭 {isLogin ? "Login" : "Register"}</h2>
       </div>
+
+      {process.env.REACT_APP_GOOGLE_CLIENT_ID && (
+        <>
+          <GoogleLoginButton
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            disabled={oauthState.phase === 'verifying'}
+          />
+
+          <div className="auth-divider">
+            <span>o continua con</span>
+          </div>
+        </>
+      )}
+
+      {oauthState.phase === 'error' && (
+        <div className="error-message">{oauthState.message}</div>
+      )}
 
       <ApiStatusAuth apiAvailable={apiAvailable} />
       <AuthForm

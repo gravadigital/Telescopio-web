@@ -79,6 +79,10 @@ export interface ApiConfig {
 
     // Borrador de votación (S-005)
     VOTE_DRAFT: (eventId: string, participantId: string) => string;
+
+    // Google OAuth (E-002.S-03)
+    GOOGLE_VERIFY: string;
+    GOOGLE_REGISTER: string;
   };
 }
 

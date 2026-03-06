@@ -33,4 +33,5 @@ jobs:
           file: docker/Dockerfile
           build-args: |
             REACT_APP_API_URL=${{ steps.set-api-url.outputs.api_url }}
+            REACT_APP_GOOGLE_CLIENT_ID=${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
           tags: ${{ secrets.EXTERNAL_PRIVATE_REGISTRY }}/telescope/web:${{ github.ref_name }}

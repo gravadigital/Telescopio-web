@@ -12,9 +12,12 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build argument for API URL (React needs this at build time)
+# Build arguments (React needs these at build time)
 ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
+
+ARG REACT_APP_GOOGLE_CLIENT_ID
+ENV REACT_APP_GOOGLE_CLIENT_ID=$REACT_APP_GOOGLE_CLIENT_ID
 
 # Build the app
 RUN npm run build

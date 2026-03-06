@@ -773,3 +773,65 @@ export const ApiHealthService = {
     return checkApiHealth();
   }
 };
+
+// ========================================
+// Google OAuth Service (E-002.S-03)
+// ========================================
+
+// Backend returns { id, email, username } (not name)
+interface GoogleApiUser {
+  id: string;
+  email: string;
+  username: string;
+}
+
+interface GoogleVerifyResponse {
+  status: 'existing_user' | 'new_user';
+  token?: string;
+  user?: GoogleApiUser;
+  profile?: { suggested_name: string; email: string };
+}
+
+interface GoogleRegisterResponse {
+  token: string;
+  user: GoogleApiUser;
+}
+
+export const GoogleAuthService = {
+  async verify(token: string): Promise<GoogleVerifyResponse> {
+    const response = await apiRequest<GoogleVerifyResponse>(
+      API_CONFIG.ENDPOINTS.GOOGLE_VERIFY,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      }
+    );
+    console.log('✅ Google verify response:', response.status);
+    return response;
+  },
+
+  async register(token: string, username: string): Promise<{ user: User; token: string }> {
+    const response = await apiRequest<GoogleRegisterResponse>(
+      API_CONFIG.ENDPOINTS.GOOGLE_REGISTER,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, username }),
+      }
+    );
+    console.log('✅ Google register successful:', response.user.username);
+    const apiUser = response.user;
+    return {
+      user: {
+        id: apiUser.id,
+        name: apiUser.username,
+        email: apiUser.email,
+        role: 'participant',
+        joinedEventIDs: [],
+        createdEventIDs: [],
+      },
+      token: response.token,
+    };
+  },
+};

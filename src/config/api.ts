@@ -48,6 +48,10 @@ export const API_CONFIG: ApiConfig = {
     // Borrador de votación (S-005)
     VOTE_DRAFT: (eventId: string, participantId: string) =>
       `/api/v1/events/${eventId}/participants/${participantId}/vote-draft`,
+
+    // Google OAuth (E-002.S-03)
+    GOOGLE_VERIFY: '/api/v1/auth/google/verify',
+    GOOGLE_REGISTER: '/api/v1/auth/google/register',
   }
 };
 
