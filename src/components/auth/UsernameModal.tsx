@@ -21,7 +21,7 @@ const UsernameModal: React.FC<UsernameModalProps> = ({
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
-  const isValid = /^[a-zA-Z0-9_-]{3,}$/.test(username);
+  const isValid = /^[a-zA-Z0-9_ -]{3,}$/.test(username.trim());
 
   const handleConfirm = async () => {
     if (!isValid || loading) return;
