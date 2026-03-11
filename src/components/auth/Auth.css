@@ -156,10 +156,10 @@
 .google-login-btn {
   width: 100%;
   padding: 14px 24px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(123, 104, 238, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(123, 104, 238, 0.35);
   border-radius: 10px;
-  color: #f1f5f9;
+  color: #e6e6ff;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -169,35 +169,31 @@
   gap: 12px;
   transition: all 0.3s ease;
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .google-login-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(123, 104, 238, 0.5);
+  background: rgba(123, 104, 238, 0.15);
+  border-color: rgba(123, 104, 238, 0.6);
+  box-shadow: 0 4px 15px rgba(123, 104, 238, 0.2);
+  transform: translateY(-1px);
 }
 
+.google-login-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.google-login-btn--disabled,
 .google-login-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
-.google-icon {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #e6e6ff;
+.google-icon-svg {
+  flex-shrink: 0;
 }
 
-.google-login-wrapper {
-  width: 100%;
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: center;
-}
-
-.google-login-wrapper--disabled {
-  opacity: 0.6;
-  pointer-events: none;
-}
 
 .auth-divider {
   display: flex;

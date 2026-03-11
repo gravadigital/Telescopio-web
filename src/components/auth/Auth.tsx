@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./Auth.css";
 import { AuthProps, FormData, User } from "../../types";
-import ApiStatusAuth from "../api-status-auth/ApiStatusAuth";
 import AuthForm from "../auth-form/AuthForm";
 import LinkButton from "../link-button/LinkButton";
 import GoogleLoginButton from "./GoogleLoginButton";
@@ -66,7 +65,7 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
     } catch (err: any) {
       setOauthState({
         phase: 'error',
-        message: err.message || 'Error al autenticar con Google',
+        message: err.message || 'Failed to authenticate with Google',
       });
     }
   };
@@ -74,7 +73,7 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
   const handleGoogleError = (err: unknown) => {
     setOauthState({
       phase: 'error',
-      message: 'No se pudo conectar con Google. Intenta de nuevo.',
+      message: 'Could not connect to Google. Please try again.',
     });
   };
 
@@ -104,7 +103,7 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
           />
 
           <div className="auth-divider">
-            <span>o continua con</span>
+            <span>or continue with</span>
           </div>
         </>
       )}
@@ -113,7 +112,6 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
         <div className="error-message">{oauthState.message}</div>
       )}
 
-      <ApiStatusAuth apiAvailable={apiAvailable} />
       <AuthForm
         mode={isLogin ? "login" : "register"}
         setMode={(mode) => setIsLogin(mode === "login")}

@@ -36,9 +36,9 @@ const UsernameModal: React.FC<UsernameModalProps> = ({
         err?.message?.includes('409') ||
         err?.message?.includes('USERNAME_ALREADY_EXISTS')
       ) {
-        setError('Este nombre de usuario ya esta en uso');
+        setError('This username is already taken');
       } else {
-        setError('Ocurrio un error. Intenta de nuevo.');
+        setError('An error occurred. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -48,13 +48,13 @@ const UsernameModal: React.FC<UsernameModalProps> = ({
   return (
     <Modal onClose={onClose}>
       <div className="auth-header">
-        <h2>Elegir nombre de usuario</h2>
+        <h2>Choose a username</h2>
       </div>
       <p className="username-modal-description">
-        Para completar tu registro con Google, elegi un nombre de usuario.
+        To complete your Google sign-up, choose a username.
       </p>
       <div className="form-group">
-        <label htmlFor="username">Nombre de usuario</label>
+        <label htmlFor="username">Username</label>
         <input
           id="username"
           type="text"
@@ -63,7 +63,7 @@ const UsernameModal: React.FC<UsernameModalProps> = ({
             setUsername(e.target.value);
             setError('');
           }}
-          placeholder="Minimo 3 caracteres"
+          placeholder="Minimum 3 characters"
         />
       </div>
       {error && <div className="error-message">{error}</div>}
@@ -72,10 +72,10 @@ const UsernameModal: React.FC<UsernameModalProps> = ({
         onClick={handleConfirm}
         disabled={!isValid || loading}
       >
-        {loading ? 'Creando cuenta...' : 'Confirmar'}
+        {loading ? 'Creating account...' : 'Confirm'}
       </button>
       <button className="username-modal-cancel-btn" onClick={onClose}>
-        Cancelar
+        Cancel
       </button>
     </Modal>
   );
