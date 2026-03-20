@@ -479,6 +479,20 @@ export const UserService = {
     }
   },
 
+  async forgotPassword(email: string): Promise<void> {
+    await apiRequest<{ message: string }>(API_CONFIG.ENDPOINTS.USER_FORGOT_PASSWORD, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPassword(token: string, password: string): Promise<void> {
+    await apiRequest<{ message: string }>(API_CONFIG.ENDPOINTS.USER_RESET_PASSWORD, {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    });
+  },
+
   async getUserEvents(userId: string): Promise<string[]> {
     try {
       const response = await apiRequest<{ data: any[] }>(

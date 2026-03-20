@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./Auth.css";
 import { AuthProps, FormData, User } from "../../types";
 import AuthForm from "../auth-form/AuthForm";
+import ForgotPasswordForm from "./ForgotPasswordForm";
 import LinkButton from "../link-button/LinkButton";
 import GoogleLoginButton from "./GoogleLoginButton";
 import UsernameModal from "./UsernameModal";
@@ -24,6 +25,7 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
   const [error, setError] = useState<string>("");
   const [apiAvailable, setApiAvailable] = useState<boolean>(false);
   const [oauthState, setOauthState] = useState<OAuthState>({ phase: 'idle' });
+  const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
   const { login } = useAuth();
 
   useEffect(() => {
@@ -37,6 +39,7 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
   const handleSwitchMode = (): void => {
     setIsLogin(!isLogin);
     setError("");
+    setShowForgotPassword(false);
     setFormData({ name: "", email: "", password: "" });
   };
 
@@ -112,21 +115,35 @@ const Auth: React.FC<AuthProps> = ({ initialMode = "login", onClose }) => {
         <div className="error-message">{oauthState.message}</div>
       )}
 
-      <AuthForm
-        mode={isLogin ? "login" : "register"}
-        setMode={(mode) => setIsLogin(mode === "login")}
-        error={error}
-        setError={setError}
-        formData={formData}
-        setFormData={setFormData}
-        apiAvailable={apiAvailable}
-        onLoginSuccess={onClose}
-      />
-      <p>{isLogin ? "Don't have an account? " : "Already have an account? "}</p>
-      <LinkButton
-        label={isLogin ? "Register here" : "Login"}
-        onClick={handleSwitchMode}
-      />
+      {showForgotPassword ? (
+        <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />
+      ) : (
+        <>
+          <AuthForm
+            mode={isLogin ? "login" : "register"}
+            setMode={(mode) => setIsLogin(mode === "login")}
+            error={error}
+            setError={setError}
+            formData={formData}
+            setFormData={setFormData}
+            apiAvailable={apiAvailable}
+            onLoginSuccess={onClose}
+          />
+          {isLogin && (
+            <div className="forgot-password-link">
+              <LinkButton
+                label="Forgot your password?"
+                onClick={() => setShowForgotPassword(true)}
+              />
+            </div>
+          )}
+          <p>{isLogin ? "Don't have an account? " : "Already have an account? "}</p>
+          <LinkButton
+            label={isLogin ? "Register here" : "Login"}
+            onClick={handleSwitchMode}
+          />
+        </>
+      )}
 
       <div className="auth-info">
         <p className="demo-notice">

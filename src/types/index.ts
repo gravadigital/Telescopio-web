@@ -83,6 +83,10 @@ export interface ApiConfig {
     // Google OAuth (E-002.S-03)
     GOOGLE_VERIFY: string;
     GOOGLE_REGISTER: string;
+
+    // Recuperación de contraseña
+    USER_FORGOT_PASSWORD: string;
+    USER_RESET_PASSWORD: string;
   };
 }
 

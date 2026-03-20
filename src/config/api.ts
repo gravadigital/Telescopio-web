@@ -52,6 +52,10 @@ export const API_CONFIG: ApiConfig = {
     // Google OAuth (E-002.S-03)
     GOOGLE_VERIFY: '/api/v1/auth/google/verify',
     GOOGLE_REGISTER: '/api/v1/auth/google/register',
+
+    // Recuperación de contraseña
+    USER_FORGOT_PASSWORD: '/api/v1/users/forgot-password',
+    USER_RESET_PASSWORD: '/api/v1/users/reset-password',
   }
 };
 

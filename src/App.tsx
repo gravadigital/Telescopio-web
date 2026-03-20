@@ -8,6 +8,7 @@ import Modal from './components/modal/Modal';
 import EventDetailPage from './pages/event-detail/EventDetailPage';
 import CreateEventPage from './pages/create-event/CreateEventPage';
 import ManageEventPage from './pages/manage-event/ManageEventPage';
+import ResetPasswordPage from './pages/reset-password/ResetPasswordPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Importar utilidades de testing en desarrollo
@@ -179,6 +180,7 @@ function AppContent(): JSX.Element {
         <Route path="/events/create" element={<CreateEventPage />} />
         <Route path="/events/:eventId/manage" element={<ManageEventPage />} />
         <Route path="/events/:eventId" element={<EventDetailPageWrapper />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Routes>
 
       {showAuthModal && (
