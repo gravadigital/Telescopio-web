@@ -446,6 +446,20 @@
   color: #60a5fa;
 }
 
+.badge-paused {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.badge-cancelled {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #f87171;
+  font-weight: 600;
+}
+
 /* ========================================
    MODAL STYLES
    ======================================== */

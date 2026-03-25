@@ -52,9 +52,13 @@ export const EventService = {
         description: event.description,
         date: event.start_date || event.date,
         organizer: event.organizer || "Organizador por determinar",
-        status: event.status === "completed" || event.status === "active" || event.status === "cancelled"
-          ? event.status as "completed" | "active" | "cancelled"
-          : "active" as const,
+        status: event.is_paused
+          ? "paused" as const
+          : event.is_cancelled
+            ? "cancelled" as const
+            : event.status === "completed"
+              ? "completed" as const
+              : "active" as const,
         stage: (event.stage as "creation" | "participation" | "voting" | "results") || "participation",
         participant_ids: event.participant_ids || [],
         voteCount: {
@@ -64,9 +68,11 @@ export const EventService = {
         },
         attachmentCount: event.attachment_count || 0,
         max_participants: event.max_participants,
-        creator_id: event.author_id, // Map author_id from backend
+        creator_id: event.author_id,
         created_at: event.created_at,
-        updated_at: event.updated_at
+        updated_at: event.updated_at,
+        is_paused: event.is_paused || false,
+        is_cancelled: event.is_cancelled || false
       }));
       
       return events;
@@ -197,7 +203,9 @@ export const EventService = {
         updated_at: event.updated_at,
         // Fechas estimativas (S-003)
         participation_estimated_end_date: event.participation_estimated_end_date || null,
-        voting_estimated_end_date: event.voting_estimated_end_date || null
+        voting_estimated_end_date: event.voting_estimated_end_date || null,
+        is_paused: event.is_paused || false,
+        is_cancelled: event.is_cancelled || false
       };
     } catch (error) {
       console.warn("⚠️ Failed to fetch event by ID from API, checking fallback data:", error);
@@ -313,6 +321,19 @@ export const EventService = {
       };
     } catch (error) {
       console.error("❌ Failed to update estimated end date:", error);
+      throw error;
+    }
+  },
+
+  async pauseEvent(eventId: string): Promise<{ is_paused: boolean }> {
+    try {
+      const response = await apiRequest<{ data: { is_paused: boolean }; message: string; code: string }>(
+        API_CONFIG.ENDPOINTS.EVENT_PAUSE(eventId),
+        { method: "PATCH" }
+      );
+      return { is_paused: response.data.is_paused };
+    } catch (error) {
+      console.error("❌ Failed to toggle event pause:", error);
       throw error;
     }
   },

@@ -386,9 +386,10 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
   }
 
   const isEventCreator = user?.id === event.creator_id;
-  const canRegister = currentStage === 'participation' && isAuthenticated && !isUserRegistered && !isEventCreator;
-  
-  const canUploadAttachment = currentStage === 'participation' && isAuthenticated && isUserRegistered && !userHasSubmittedFile && !isEventCreator;
+  const isEventPaused = event.is_paused === true;
+  const canRegister = currentStage === 'participation' && isAuthenticated && !isUserRegistered && !isEventCreator && !isEventPaused;
+
+  const canUploadAttachment = currentStage === 'participation' && isAuthenticated && isUserRegistered && !userHasSubmittedFile && !isEventCreator && !isEventPaused;
   const isOrganizer = isEventCreator || user?.role === 'admin';
   const nextStage = getNextStage(currentStage);
   
@@ -431,6 +432,10 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
                 }`}>
                   {getStageDisplayName(currentStage)}
                 </span>
+
+                {isEventPaused && (
+                  <span className="badge badge-paused">⏸ PAUSED</span>
+                )}
 
                 {isOrganizer && nextStage && (
                   <button
@@ -515,8 +520,15 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
             </div>
           )}
 
+          {/* Paused event notice */}
+          {isEventPaused && !isEventCreator && (
+            <div className="alert alert-danger">
+              <p>⏸ This event is currently paused. Registration and file submissions are not available.</p>
+            </div>
+          )}
+
           {/* Participation Stage - Unified Registration and Upload */}
-          {currentStage === 'participation' && !isEventCreator && (
+          {currentStage === 'participation' && !isEventCreator && !isEventPaused && (
             <div className="participation-section">
               {!isUserRegistered ? (
                 // User not registered - show registration

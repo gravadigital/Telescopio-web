@@ -240,11 +240,21 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                       <div className="table-cell cell-stage">
                         <span className="cell-label">Stage:</span>
                         <span className={`badge badge-${
-                          event.stage === 'participation' ? 'success' : 
+                          event.stage === 'participation' ? 'success' :
                           event.stage === 'voting' ? 'warning' : 'primary'
                         }`}>
                           {getStageDisplayName(event.stage)}
                         </span>
+                        {event.is_paused && (
+                          <span className="badge badge-paused" style={{ marginLeft: '6px' }}>
+                            ⏸ PAUSED
+                          </span>
+                        )}
+                        {event.is_cancelled && (
+                          <span className="badge badge-cancelled" style={{ marginLeft: '6px' }}>
+                            CANCELLED
+                          </span>
+                        )}
                       </div>
                       
                       <div className="table-cell cell-participants">

@@ -16,7 +16,9 @@ export interface Event {
   date: string;
   organizer?: string;
   shareable_link?: string;
-  status?: 'active' | 'cancelled' | 'completed';
+  status?: 'active' | 'cancelled' | 'completed' | 'paused';
+  is_paused?: boolean;
+  is_cancelled?: boolean;
   participant_ids?: string[];
   voteCount?: {
     yes: number;
@@ -76,6 +78,9 @@ export interface ApiConfig {
 
     // Fechas estimativas (S-003)
     EVENT_ESTIMATED_DATE: (eventId: string) => string;
+
+    // Pausa de evento
+    EVENT_PAUSE: (eventId: string) => string;
 
     // Borrador de votación (S-005)
     VOTE_DRAFT: (eventId: string, participantId: string) => string;

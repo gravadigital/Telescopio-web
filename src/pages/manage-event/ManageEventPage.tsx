@@ -250,16 +250,11 @@ const ManageEventPage: React.FC = () => {
     return null;
   };
 
-  const handleRevertStage = async (): Promise<void> => {
+  const handlePauseToggle = async (): Promise<void> => {
     if (!eventId || !event) return;
 
-    const previousStage = getPreviousStage(event.stage);
-    if (!previousStage) {
-      setError('Cannot revert from this stage.');
-      return;
-    }
-
-    if (!window.confirm(`⚠️ Revert to ${getStageName(previousStage)}? This may affect existing data.`)) {
+    const action = event.is_paused ? 'resume' : 'pause';
+    if (!window.confirm(`${action === 'pause' ? '⏸️ Pause' : '▶️ Resume'} this event? ${action === 'pause' ? 'Participants will not be able to register or upload files while the event is paused.' : ''}`)) {
       return;
     }
 
@@ -267,12 +262,11 @@ const ManageEventPage: React.FC = () => {
     setError('');
 
     try {
-      await EventService.updateEventStage(eventId, previousStage);
+      await EventService.pauseEvent(eventId);
       await loadEventData();
-      console.log(`Event stage reverted to: ${previousStage}`);
     } catch (err) {
-      console.error('Error reverting stage:', err);
-      setError('Error reverting stage. Please try again.');
+      console.error('Error toggling event pause:', err);
+      setError('Error updating event. Please try again.');
     } finally {
       setUpdatingStage(false);
     }
@@ -289,16 +283,6 @@ const getNextStage = (currentStage: Event['stage']): Event['stage'] | null => {
   return null;
 };
 
-const getPreviousStage = (currentStage: Event['stage']): Event['stage'] | null => {
-  const stageOrder: Event['stage'][] = ['creation', 'participation', 'voting', 'results'];
-  const currentIndex = stageOrder.indexOf(currentStage);
-
-  if (currentIndex > 0) {
-    return stageOrder[currentIndex - 1];
-  }
-
-  return null;
-};
 
 const getStageName = (stage: Event['stage']): string => {
   const stageNames: Record<Event['stage'], string> = {
@@ -398,6 +382,11 @@ const getStageName = (stage: Event['stage']): string => {
               }`}>
                 {getStageName(event.stage)}
               </span>
+              {event.is_paused && (
+                <span className="badge badge-paused" style={{ marginLeft: '8px' }}>
+                  ⏸ PAUSED
+                </span>
+              )}
             </div>
 
             <div className="meta-item">
@@ -503,14 +492,14 @@ const getStageName = (stage: Event['stage']): string => {
               </button>
             )}
 
-            {getPreviousStage(event.stage) && (
+            {!event.is_cancelled && event.stage !== 'results' && (
               <button
-                onClick={handleRevertStage}
+                onClick={handlePauseToggle}
                 disabled={updatingStage}
-                className="btn btn-secondary btn-lg"
+                className={`btn btn-lg ${event.is_paused ? 'btn-primary' : 'btn-secondary'}`}
                 style={{ marginLeft: '10px' }}
               >
-                {updatingStage ? 'Updating...' : `⟲ Revert to ${getStageName(getPreviousStage(event.stage)!)}`}
+                {updatingStage ? 'Updating...' : event.is_paused ? '▶ Resume Event' : '⏸ Pause Event'}
               </button>
             )}
 
