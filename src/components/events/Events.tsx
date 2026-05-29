@@ -285,72 +285,55 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                               );
                             }
 
-                            // Non-creator: show Details + contextual action button
-                            return (
-                              <>
-                                <button
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => {
-                                    if (onViewEventDetail) {
-                                      onViewEventDetail(event.id);
-                                    } else {
-                                      navigate(`/events/${event.id}`);
-                                    }
-                                  }}
-                                  title="View full details"
-                                >
-                                  Details
+                            // Non-creator: single contextual button
+                            const goToEvent = () => {
+                              if (onViewEventDetail) {
+                                onViewEventDetail(event.id);
+                              } else {
+                                navigate(`/events/${event.id}`);
+                              }
+                            };
+
+                            if (event.stage === 'participation' && isUserRegistered) {
+                              return (
+                                <button className="btn btn-primary btn-sm" onClick={goToEvent} title="Upload your file">
+                                  Upload File
                                 </button>
+                              );
+                            }
 
-                                {/* Participation stage actions */}
-                                {event.stage === 'participation' && (
-                                  isUserRegistered ? (
-                                    <button
-                                      className="btn btn-info btn-sm"
-                                      onClick={() => navigate(`/events/${event.id}`)}
-                                      title="View details and upload file"
-                                    >
-                                      View Details
-                                    </button>
-                                  ) : (
-                                    <button
-                                      className="btn btn-primary btn-sm"
-                                      onClick={() => {
-                                        if (isAuthenticated) {
-                                          navigate(`/events/${event.id}`);
-                                        } else {
-                                          openAuthModal('login');
-                                        }
-                                      }}
-                                      title={!isAuthenticated ? "Log in to participate" : "Participate in event"}
-                                    >
-                                      Participate
-                                    </button>
-                                  )
-                                )}
+                            if (event.stage === 'participation' && !isUserRegistered) {
+                              return (
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => isAuthenticated ? goToEvent() : openAuthModal('login')}
+                                  title="Participate in this event"
+                                >
+                                  Participate
+                                </button>
+                              );
+                            }
 
-                                {/* Voting stage action */}
-                                {event.stage === 'voting' && isUserRegistered && (
-                                  <button
-                                    className="btn btn-success btn-sm"
-                                    onClick={() => navigate(`/events/${event.id}`)}
-                                    title="Submit your votes"
-                                  >
-                                    Vote
-                                  </button>
-                                )}
+                            if (event.stage === 'voting' && isUserRegistered) {
+                              return (
+                                <button className="btn btn-success btn-sm" onClick={goToEvent} title="Submit your votes">
+                                  Vote
+                                </button>
+                              );
+                            }
 
-                                {/* Results stage action */}
-                                {event.stage === 'results' && isUserRegistered && (
-                                  <button
-                                    className="btn btn-primary btn-sm"
-                                    onClick={() => navigate(`/events/${event.id}`)}
-                                    title="View results"
-                                  >
-                                    Results
-                                  </button>
-                                )}
-                              </>
+                            if (event.stage === 'results' && isUserRegistered) {
+                              return (
+                                <button className="btn btn-primary btn-sm" onClick={goToEvent} title="See final rankings">
+                                  See Results
+                                </button>
+                              );
+                            }
+
+                            return (
+                              <button className="btn btn-secondary btn-sm" onClick={goToEvent} title="View event details">
+                                View Event
+                              </button>
                             );
                           })()}
                         </div>

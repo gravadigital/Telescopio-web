@@ -7,7 +7,6 @@ import './CreateEventPage.css';
 interface CreateEventFormData {
   name: string;
   description: string;
-  date: string;
   organizer: string;
   maxParticipants: number;
 }
@@ -16,42 +15,25 @@ const CreateEventPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  // Get tomorrow's date in YYYY-MM-DD format (local timezone)
-  // Backend requires start_date to be in the future (not today)
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const year = tomorrow.getFullYear();
-    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-    const day = String(tomorrow.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   const [formData, setFormData] = useState<CreateEventFormData>({
     name: '',
     description: '',
-    date: '',
     organizer: '',
-    maxParticipants: 20
+    maxParticipants: 20,
   });
-  const [creating, setCreating] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const minDate = getTomorrowDate();
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
 
-  // Redirect if not authenticated
   React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/events');
-    }
+    if (!isAuthenticated) navigate('/events');
   }, [isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    console.log(`Field changed: ${name} = ${value}`);
-    setFormData({
-      ...formData,
-      [name]: type === 'number' ? parseInt(value) || 1 : value
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'number' ? parseInt(value) || 1 : value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,131 +41,64 @@ const CreateEventPage: React.FC = () => {
     setCreating(true);
     setError('');
 
-    if (!formData.name || !formData.description || !formData.date) {
-      setError('All fields are required.');
-      setCreating(false);
-      return;
-    }
-    
-    if (formData.name.length < 3) {
-      setError('Event name must be at least 3 characters long.');
-      setCreating(false);
-      return;
-    }
-    
-    if (formData.name.length > 200) {
-      setError('Event name cannot exceed 200 characters.');
-      setCreating(false);
-      return;
-    }
-    
-    if (formData.description.length < 10) {
-      setError('Description must be at least 10 characters long.');
-      setCreating(false);
-      return;
-    }
-    
-    if (formData.description.length > 2000) {
-      setError('Description cannot exceed 2000 characters.');
-      setCreating(false);
-      return;
-    }
+    // Generate tomorrow as the event date — backend requires a future date
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const autoDate = tomorrow.toISOString().split('T')[0];
 
     try {
-      // NO incluir author_id - el backend lo toma del token JWT automáticamente
-      console.log('📤 Creating event with authenticated user token');
-      console.log('📋 Event data:', formData);
-
-      const newEvent = await EventService.createEvent(formData);
-      console.log('✅ Event created successfully:', newEvent);
-      
-      // Redirect to the new event's detail page
+      const newEvent = await EventService.createEvent({ ...formData, date: autoDate });
       navigate(`/events/${newEvent.id}`);
-    } catch (error) {
-      console.error('Error creating event:', error);
-      
-      // Show more specific error message
-      let errorMessage = 'Error creating event. Please try again.';
-      if (error instanceof Error) {
-        if (error.message.includes('DUPLICATE_EVENT_NAME')) {
-          errorMessage = 'An event with this name already exists. Please choose a different name.';
-        } else if (error.message.includes('PAST_START_DATE')) {
-          errorMessage = 'Start date cannot be in the past. Please select a future date.';
-        } else if (error.message.includes('INVALID_DATE_RANGE')) {
-          errorMessage = 'End date must be after start date.';
-        } else if (error.message.includes('DURATION_TOO_SHORT')) {
-          errorMessage = 'Event duration must be at least 1 day.';
-        } else if (error.message.includes('DURATION_TOO_LONG')) {
-          errorMessage = 'Event duration cannot exceed 1 year.';
-        } else if (error.message.includes('INVALID_PAYLOAD')) {
-          errorMessage = 'Invalid form data. Please check all required fields.';
-        } else if (error.message) {
-          errorMessage = `Error: ${error.message}`;
-        }
+    } catch (err) {
+      let msg = 'Error creating event. Please try again.';
+      if (err instanceof Error) {
+        if (err.message.includes('DUPLICATE_EVENT_NAME'))
+          msg = 'An event with this name already exists. Please choose a different name.';
+        else if (err.message.includes('INVALID_PAYLOAD'))
+          msg = 'Invalid form data. Please check all required fields.';
+        else if (err.message)
+          msg = err.message;
       }
-      
-      setError(errorMessage);
+      setError(msg);
     } finally {
       setCreating(false);
     }
   };
 
-  const handleCancel = () => {
-    navigate('/events');
-  };
-
-  // Check if form is valid for submission
   const nameValid = formData.name.trim().length >= 3 && formData.name.length <= 200;
   const descValid = formData.description.trim().length >= 10 && formData.description.length <= 2000;
-  const dateValid = formData.date.trim().length > 0;
+  const isFormValid = nameValid && descValid;
 
-  const isFormValid = nameValid && descValid && dateValid;
-
-  console.log('📋 Form validation:', {
-    name: formData.name,
-    nameValid,
-    nameLength: formData.name.length,
-    description: formData.description,
-    descValid,
-    descriptionLength: formData.description.length,
-    date: formData.date,
-    dateValid,
-    isFormValid,
-    'button disabled?': creating || !isFormValid
-  });
-
-  if (!isAuthenticated) {
-    return null; // Will redirect via useEffect
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <div className="create-event-page">
       <div className="create-event-container">
-        {/* Header */}
+
         <div className="create-event-header">
-          <button onClick={handleCancel} className="btn btn-secondary btn-sm back-button">
+          <button onClick={() => navigate('/events')} className="btn btn-secondary btn-sm back-button">
             ← Back to Events
           </button>
-          <h1>Create New Event</h1>
-          <p className="subtitle">Set up a new astronomical observation event</p>
+          <h1>Create Event</h1>
+          <p className="subtitle">Fill in the details to set up a new event</p>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="alert alert-danger">
+          <div className="alert alert-danger" style={{ margin: '20px 40px 0' }}>
             <p>{error}</p>
           </div>
         )}
 
-        {/* Form */}
         <div className="create-event-form-container">
           <form onSubmit={handleSubmit} className="create-event-form">
+
+            {/* ── Identification ───────────────────────────────────────── */}
             <div className="form-section">
-              <h3>Event Details</h3>
-              
+              <h3>Identification</h3>
+
               <div className="form-group">
                 <label className="form-label" htmlFor="name">
-                  Event Name <span className="required">*</span>
+                  Event name <span className="required">*</span>
                 </label>
                 <input
                   id="name"
@@ -193,10 +108,13 @@ const CreateEventPage: React.FC = () => {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  placeholder="e.g. Jupiter Observation 2026"
+                  placeholder="e.g. Spring Photo Contest 2026"
                   maxLength={200}
                 />
-                <small className="form-help">Give your event a descriptive name (3-200 characters)</small>
+                <small className="form-help">
+                  A short, descriptive title that participants will see in the events list.
+                  Between 3 and 200 characters.
+                </small>
               </div>
 
               <div className="form-group">
@@ -210,39 +128,19 @@ const CreateEventPage: React.FC = () => {
                   value={formData.description}
                   onChange={handleChange}
                   required
-                  placeholder="Describe the astronomical event, objectives, and what participants can expect... (minimum 10 characters)"
+                  placeholder="Explain what the event is about, what participants are expected to submit, and how the judging works."
                   rows={6}
                   maxLength={2000}
                 />
                 <small className="form-help">
-                  Provide detailed information about the event (10-2000 characters) - Current: {formData.description.length}/2000
+                  Describe the event purpose, submission guidelines, and evaluation criteria.
+                  {' '}{formData.description.length}/2000 characters (minimum 10).
                 </small>
-              </div>
-            </div>
-
-            <div className="form-section">
-              <h3>Schedule & Organization</h3>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="date">
-                  Start Date <span className="required">*</span>
-                </label>
-                <input
-                  id="date"
-                  className="form-input"
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                  min={minDate}
-                />
-                <small className="form-help">When will the event begin? (Must be a future date)</small>
               </div>
 
               <div className="form-group">
                 <label className="form-label" htmlFor="organizer">
-                  Organizer
+                  Organizer name
                 </label>
                 <input
                   id="organizer"
@@ -251,14 +149,21 @@ const CreateEventPage: React.FC = () => {
                   name="organizer"
                   value={formData.organizer}
                   onChange={handleChange}
-                  placeholder="Organization or person organizing the event"
+                  placeholder="e.g. Photography Club, Science Dept."
                 />
-                <small className="form-help">Who is organizing this event? (Optional)</small>
+                <small className="form-help">
+                  The person, team, or institution responsible for this event. Shown publicly on the event page. Optional.
+                </small>
               </div>
+            </div>
+
+            {/* ── Configuration ────────────────────────────────────────── */}
+            <div className="form-section">
+              <h3>Configuration</h3>
 
               <div className="form-group">
                 <label className="form-label" htmlFor="maxParticipants">
-                  Maximum Participants
+                  Maximum participants
                 </label>
                 <input
                   id="maxParticipants"
@@ -269,18 +174,26 @@ const CreateEventPage: React.FC = () => {
                   onChange={handleChange}
                   min={1}
                   max={100}
-                  placeholder="20"
                 />
-                <small className="form-help">Maximum number of participants allowed (1-100, default: 20)</small>
+                <small className="form-help">
+                  How many people can register. Once this limit is reached, new registrations are blocked.
+                  Between 1 and 100. Default: 20.
+                </small>
+              </div>
+
+              <div className="form-hint-box">
+                <span className="form-hint-icon">ℹ️</span>
+                <p>
+                  Deadline dates for each stage (Participation, Voting) are set when you advance
+                  the event to that stage from the management panel.
+                </p>
               </div>
             </div>
 
-
-            {/* Form Actions */}
             <div className="form-actions">
               <button
                 type="button"
-                onClick={handleCancel}
+                onClick={() => navigate('/events')}
                 className="btn btn-secondary btn-lg"
                 disabled={creating}
               >
@@ -290,18 +203,15 @@ const CreateEventPage: React.FC = () => {
                 type="submit"
                 disabled={creating || !isFormValid}
                 className="btn btn-primary btn-lg"
-                style={{ opacity: (creating || !isFormValid) ? 0.5 : 1 }}
               >
                 {creating ? (
-                  <>
-                    <span className="loading-spinner-small"></span>
-                    Creating Event...
-                  </>
+                  <><span className="loading-spinner-small"></span>Creating…</>
                 ) : (
                   'Create Event'
                 )}
               </button>
             </div>
+
           </form>
         </div>
       </div>

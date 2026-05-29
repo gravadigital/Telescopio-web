@@ -6,6 +6,7 @@ import { Event, User } from '../../types';
 import VotingResultsPanel from '../../components/voting-results-panel/VotingResultsPanel';
 import VotingConfigurationPanel from '../../components/voting-configuration-panel/VotingConfigurationPanel';
 import StageAdvanceModal from '../../components/stage-advance-modal/StageAdvanceModal';
+import EventTimeline from '../../components/event-timeline/EventTimeline';
 import '../../components/stage-advance-modal/StageAdvanceModal.css';
 import './ManageEventPage.css';
 
@@ -440,39 +441,7 @@ const getStageName = (stage: Event['stage']): string => {
         <div className="stage-control-section">
           <h3>Event Stage Control</h3>
 
-          <div className="stage-flow">
-            <div className={`stage-item ${
-              event.stage === 'creation' ? 'active' :
-              (event.stage === 'participation' || event.stage === 'voting' || event.stage === 'results') ? 'completed' : ''
-            }`}>
-              <div className="stage-number">1</div>
-              <div className="stage-name">Creation</div>
-            </div>
-            <div className="stage-arrow">→</div>
-
-            <div className={`stage-item ${
-              event.stage === 'participation' ? 'active' :
-              (event.stage === 'voting' || event.stage === 'results') ? 'completed' : ''
-            }`}>
-              <div className="stage-number">2</div>
-              <div className="stage-name">Participation</div>
-            </div>
-            <div className="stage-arrow">→</div>
-
-            <div className={`stage-item ${
-              event.stage === 'voting' ? 'active' :
-              event.stage === 'results' ? 'completed' : ''
-            }`}>
-              <div className="stage-number">3</div>
-              <div className="stage-name">Voting</div>
-            </div>
-            <div className="stage-arrow">→</div>
-
-            <div className={`stage-item ${event.stage === 'results' ? 'active' : ''}`}>
-              <div className="stage-number">4</div>
-              <div className="stage-name">Results</div>
-            </div>
-          </div>
+          <EventTimeline currentStage={event.stage} />
 
           <div className="stage-actions">
             {nextStage && (
