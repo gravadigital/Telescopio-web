@@ -13,202 +13,226 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
   eventId,
   totalAttachments,
   totalParticipants,
-  onConfigured
+  onConfigured,
 }) => {
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Calculate maximum possible m considering conflict of interest
-  const maxPossibleM = totalAttachments >= totalParticipants 
-    ? totalAttachments - 1  // Each participant can't evaluate their own file
+  const maxPossibleM = totalAttachments >= totalParticipants
+    ? totalAttachments - 1
     : totalAttachments;
 
-  // Calculate recommended M, capped at maxPossibleM
-  const baseRecommendedM = Math.ceil(2 * Math.log2(totalAttachments));
-  const recommendedM = Math.min(baseRecommendedM, maxPossibleM);
+  const recommendedM = Math.min(
+    Math.max(Math.ceil(2 * Math.log2(Math.max(totalAttachments, 2))), 1),
+    maxPossibleM
+  );
 
   const [config, setConfig] = useState({
-    attachments_per_evaluator: Math.max(Math.min(recommendedM, maxPossibleM), 2),
+    attachments_per_evaluator: Math.max(Math.min(recommendedM, maxPossibleM), 1),
+    min_evaluations_per_file: 3,
     quality_good_threshold: 0.6,
     quality_bad_threshold: 0.3,
     adjustment_magnitude: 3,
-    min_evaluations_per_file: 3
   });
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess('');
 
-    // Validación local antes de enviar
-    const totalEvaluationsNeeded = totalAttachments * config.min_evaluations_per_file;
-    const totalEvaluationsAvailable = totalParticipants * config.attachments_per_evaluator;
-
-    if (totalEvaluationsAvailable < totalEvaluationsNeeded) {
+    const needed = totalAttachments * config.min_evaluations_per_file;
+    const available = totalParticipants * config.attachments_per_evaluator;
+    if (available < needed) {
       setError(
-        `Insufficient evaluations: Need ${totalEvaluationsNeeded} (${totalAttachments} files × ${config.min_evaluations_per_file} min evaluations), ` +
-        `but only have ${totalEvaluationsAvailable} (${totalParticipants} participants × ${config.attachments_per_evaluator} files per evaluator). ` +
-        `Try reducing "Min Evaluations per File" or increasing "Attachments per Evaluator".`
+        `Not enough evaluations: ${totalParticipants} participants × ${config.attachments_per_evaluator} files = ${available}, ` +
+        `but ${totalAttachments} files × ${config.min_evaluations_per_file} min reviews = ${needed} needed. ` +
+        `Try increasing "Files per reviewer" or reducing "Min reviews per file".`
       );
       setLoading(false);
       return;
     }
 
     try {
-      // Intentar crear configuración
       try {
         await DistributedVotingService.createVotingConfig(eventId, config);
-        console.log('✅ Voting configuration created');
       } catch (configErr: any) {
-        // Si la configuración ya existe (409), continuar de todas formas
-        if (configErr?.message?.includes('already exists') || configErr?.message?.includes('CONFIG_EXISTS')) {
-          console.log('ℹ️ Voting configuration already exists, proceeding to generate assignments');
-        } else {
-          // Si es otro error, lanzar para manejarlo abajo
+        if (!configErr?.message?.includes('already exists') && !configErr?.message?.includes('CONFIG_EXISTS')) {
           throw configErr;
         }
       }
-
-      // Generar asignaciones automáticamente
       await DistributedVotingService.generateAssignments(eventId);
-
-      setSuccess('Voting configuration created and assignments generated successfully!');
       onConfigured();
     } catch (err: any) {
-      const errorMessage = err?.message || 'Unknown error';
-      setError(`Failed to configure voting system: ${errorMessage}`);
-      console.error('Voting configuration error:', err);
+      setError(`Failed to configure voting: ${err?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="voting-config-panel">
-      <h3>⚙️ Configure Distributed Voting System</h3>
+  const readyToStart = totalAttachments >= 2 && totalParticipants >= 2;
 
-      <div className="info-box">
-        <p><strong>Event Status:</strong></p>
-        <ul>
-          <li>Total Attachments: {totalAttachments}</li>
-          <li>Total Participants: {totalParticipants}</li>
-          <li>Recommended attachments per evaluator: ≥ {recommendedM}</li>
-          <li>Maximum evaluable per participant: {maxPossibleM}</li>
-          {totalAttachments >= totalParticipants && (
-            <li className="warning-text">⚠️ Note: Participants cannot evaluate their own submissions (conflict of interest). Each participant can evaluate at most {maxPossibleM} files.</li>
-          )}
-        </ul>
+  return (
+    <div className="vcp-panel">
+
+      <div className="vcp-header">
+        <h3>Start voting phase</h3>
+        <p className="vcp-subtitle">
+          Each participant will be assigned a set of submissions to review and rank.
+          The system distributes the workload automatically to avoid conflicts of interest.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>
-            Attachments per Evaluator (m):
-            <input
-              type="number"
-              min={2}
-              max={maxPossibleM}
-              value={config.attachments_per_evaluator}
-              onChange={(e) => setConfig({
-                ...config,
-                attachments_per_evaluator: parseInt(e.target.value)
-              })}
-              required
-            />
+      <div className="vcp-summary">
+        <div className="vcp-summary-card">
+          <span className="vcp-summary-value">{totalAttachments}</span>
+          <span className="vcp-summary-label">Submissions</span>
+        </div>
+        <div className="vcp-summary-card">
+          <span className="vcp-summary-value">{totalParticipants}</span>
+          <span className="vcp-summary-label">Reviewers</span>
+        </div>
+        <div className="vcp-summary-card">
+          <span className="vcp-summary-value">{config.attachments_per_evaluator}</span>
+          <span className="vcp-summary-label">Files per reviewer</span>
+        </div>
+      </div>
+
+      {!readyToStart && (
+        <div className="vcp-warning">
+          ⚠️ You need at least 2 submissions and 2 participants to start voting.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="vcp-form">
+
+        <div className="vcp-field">
+          <label className="vcp-label" htmlFor="vcp-m">
+            Files per reviewer
           </label>
-          <small>Recommended: ≥ {recommendedM} for optimal convergence (2*log₂(k), M). Maximum: {maxPossibleM} (participants can't evaluate their own files)</small>
+          <input
+            id="vcp-m"
+            className="vcp-input"
+            type="number"
+            min={1}
+            max={maxPossibleM}
+            value={config.attachments_per_evaluator}
+            onChange={e => setConfig(p => ({ ...p, attachments_per_evaluator: parseInt(e.target.value) }))}
+            required
+          />
+          <small className="vcp-hint">
+            How many submissions each participant will review.
+            Recommended: <strong>{recommendedM}</strong> (max: {maxPossibleM}).
+            Each participant only reviews files from others — never their own.
+          </small>
         </div>
 
-        <div className="form-group">
-          <label>
-            Minimum Evaluations per File:
-            <input
-              type="number"
-              min={1}
-              value={config.min_evaluations_per_file}
-              onChange={(e) => setConfig({
-                ...config,
-                min_evaluations_per_file: parseInt(e.target.value)
-              })}
-              required
-            />
-          </label>
-          <small>Each file will be evaluated by at least this many participants</small>
-        </div>
+        <button
+          type="button"
+          className="vcp-advanced-toggle"
+          onClick={() => setShowAdvanced(v => !v)}
+        >
+          {showAdvanced ? '▲ Hide advanced settings' : '▼ Advanced settings'}
+        </button>
 
-        <div className="form-group">
-          <label>
-            Quality Good Threshold (Q_good):
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="1"
-              value={config.quality_good_threshold}
-              onChange={(e) => setConfig({
-                ...config,
-                quality_good_threshold: parseFloat(e.target.value)
-              })}
-              required
-            />
-          </label>
-          <small>Evaluators with quality ≥ this value receive rank bonus (0-1 scale)</small>
-        </div>
+        {showAdvanced && (
+          <div className="vcp-advanced">
+            <p className="vcp-advanced-note">
+              These settings control how reviewer quality affects the final ranking.
+              The defaults work well for most events.
+            </p>
 
-        <div className="form-group">
-          <label>
-            Quality Bad Threshold (Q_bad):
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="1"
-              value={config.quality_bad_threshold}
-              onChange={(e) => setConfig({
-                ...config,
-                quality_bad_threshold: parseFloat(e.target.value)
-              })}
-              required
-            />
-          </label>
-          <small>Evaluators with quality ≤ this value receive rank penalty (0-1 scale)</small>
-        </div>
+            <div className="vcp-field">
+              <label className="vcp-label" htmlFor="vcp-min-evals">
+                Minimum reviews per file
+              </label>
+              <input
+                id="vcp-min-evals"
+                className="vcp-input"
+                type="number"
+                min={1}
+                value={config.min_evaluations_per_file}
+                onChange={e => setConfig(p => ({ ...p, min_evaluations_per_file: parseInt(e.target.value) }))}
+                required
+              />
+              <small className="vcp-hint">
+                Each submission will be reviewed by at least this many participants. Default: 3.
+              </small>
+            </div>
 
-        <div className="form-group">
-          <label>
-            Rank Adjustment Magnitude:
-            <input
-              type="number"
-              min="1"
-              value={config.adjustment_magnitude}
-              onChange={(e) => setConfig({
-                ...config,
-                adjustment_magnitude: parseInt(e.target.value)
-              })}
-              required
-            />
-          </label>
-          <small>Number of positions to adjust in ranking for quality bonuses/penalties</small>
-        </div>
+            <div className="vcp-field-row">
+              <div className="vcp-field">
+                <label className="vcp-label" htmlFor="vcp-q-good">
+                  Good reviewer threshold
+                </label>
+                <input
+                  id="vcp-q-good"
+                  className="vcp-input"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="1"
+                  value={config.quality_good_threshold}
+                  onChange={e => setConfig(p => ({ ...p, quality_good_threshold: parseFloat(e.target.value) }))}
+                  required
+                />
+                <small className="vcp-hint">
+                  Reviewers scoring above this (0–1) get a ranking bonus. Default: 0.6.
+                </small>
+              </div>
 
-        {error && <div className="message error-message">{error}</div>}
-        {success && <div className="message success-message">{success}</div>}
+              <div className="vcp-field">
+                <label className="vcp-label" htmlFor="vcp-q-bad">
+                  Poor reviewer threshold
+                </label>
+                <input
+                  id="vcp-q-bad"
+                  className="vcp-input"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="1"
+                  value={config.quality_bad_threshold}
+                  onChange={e => setConfig(p => ({ ...p, quality_bad_threshold: parseFloat(e.target.value) }))}
+                  required
+                />
+                <small className="vcp-hint">
+                  Reviewers scoring below this (0–1) get a ranking penalty. Default: 0.3.
+                </small>
+              </div>
+            </div>
 
-        <button type="submit" className="primary-btn" disabled={loading}>
-          {loading ? 'Configuring...' : 'Create Configuration & Generate Assignments'}
+            <div className="vcp-field">
+              <label className="vcp-label" htmlFor="vcp-magnitude">
+                Quality adjustment strength
+              </label>
+              <input
+                id="vcp-magnitude"
+                className="vcp-input"
+                type="number"
+                min="1"
+                value={config.adjustment_magnitude}
+                onChange={e => setConfig(p => ({ ...p, adjustment_magnitude: parseInt(e.target.value) }))}
+                required
+              />
+              <small className="vcp-hint">
+                How many ranking positions a quality bonus/penalty moves a submission. Default: 3.
+              </small>
+            </div>
+          </div>
+        )}
+
+        {error && <div className="vcp-error">{error}</div>}
+
+        <button
+          type="submit"
+          className="vcp-submit"
+          disabled={loading || !readyToStart}
+        >
+          {loading ? 'Setting up…' : 'Start voting — assign reviewers'}
         </button>
       </form>
 
-      <div className="info-box algorithm-info">
-        <h4>About Modified Borda Count (MBC)</h4>
-        <p>
-          The system uses a distributed voting algorithm where each participant evaluates
-          a subset of submissions. The MBC formula aggregates rankings to produce a fair
-          global ranking, while quality scores ensure high-quality evaluators have more influence.
-        </p>
-      </div>
     </div>
   );
 };

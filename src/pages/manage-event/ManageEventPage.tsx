@@ -365,9 +365,9 @@ const getStageName = (stage: Event['stage']): string => {
 
           <div className="event-meta">
             <div className="meta-item">
-              <span className="meta-label">Date:</span>
+              <span className="meta-label">Created:</span>
               <span className="meta-value">
-                {new Date(event.date).toLocaleDateString('en-US', {
+                {new Date(event.created_at || event.date).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
@@ -402,35 +402,51 @@ const getStageName = (stage: Event['stage']): string => {
               </span>
             </div>
 
-            {/* Fecha estimativa de cierre - S-003 */}
-            {event.stage === 'participation' && event.participation_estimated_end_date && (
+            {/* Deadline de la etapa actual */}
+            {event.stage === 'participation' && (
               <div className="meta-item deadline-meta">
                 <span className="meta-label">Participation Deadline:</span>
                 <span className="meta-value">
-                  {formatEstimatedDate(event.participation_estimated_end_date)}
-                  <button 
-                    className="btn-edit-deadline"
-                    onClick={() => handleEditDeadlineClick('participation')}
-                    title="Edit deadline"
-                  >
-                    ✏️
-                  </button>
+                  {event.participation_estimated_end_date
+                    ? <>
+                        {formatEstimatedDate(event.participation_estimated_end_date)}
+                        <button
+                          className="btn-edit-deadline"
+                          onClick={() => handleEditDeadlineClick('participation')}
+                          title="Edit deadline"
+                        >✏️</button>
+                      </>
+                    : <button
+                        className="btn-set-deadline"
+                        onClick={() => handleEditDeadlineClick('participation')}
+                      >
+                        + Set deadline
+                      </button>
+                  }
                 </span>
               </div>
             )}
 
-            {event.stage === 'voting' && event.voting_estimated_end_date && (
+            {event.stage === 'voting' && (
               <div className="meta-item deadline-meta">
                 <span className="meta-label">Voting Deadline:</span>
                 <span className="meta-value">
-                  {formatEstimatedDate(event.voting_estimated_end_date)}
-                  <button 
-                    className="btn-edit-deadline"
-                    onClick={() => handleEditDeadlineClick('voting')}
-                    title="Edit deadline"
-                  >
-                    ✏️
-                  </button>
+                  {event.voting_estimated_end_date
+                    ? <>
+                        {formatEstimatedDate(event.voting_estimated_end_date)}
+                        <button
+                          className="btn-edit-deadline"
+                          onClick={() => handleEditDeadlineClick('voting')}
+                          title="Edit deadline"
+                        >✏️</button>
+                      </>
+                    : <button
+                        className="btn-set-deadline"
+                        onClick={() => handleEditDeadlineClick('voting')}
+                      >
+                        + Set deadline
+                      </button>
+                  }
                 </span>
               </div>
             )}
@@ -441,7 +457,13 @@ const getStageName = (stage: Event['stage']): string => {
         <div className="stage-control-section">
           <h3>Event Stage Control</h3>
 
-          <EventTimeline currentStage={event.stage} />
+          <EventTimeline
+            currentStage={event.stage}
+            deadlines={{
+              participation: event.participation_estimated_end_date,
+              voting: event.voting_estimated_end_date,
+            }}
+          />
 
           <div className="stage-actions">
             {nextStage && (
@@ -523,10 +545,8 @@ const getStageName = (stage: Event['stage']): string => {
                 <div className="table-header">
                   <div className="header-cell">Name</div>
                   <div className="header-cell">Email</div>
-                  <div className="header-cell">Role</div>
                   <div className="header-cell">File Status</div>
                   <div className="header-cell">Voting Status</div>
-                  <div className="header-cell">Joined</div>
                 </div>
 
                 <div className="table-body">
@@ -536,43 +556,28 @@ const getStageName = (stage: Event['stage']): string => {
                     const hasSubmittedFile = attachments.some(
                       att => att.participant_id === participant.id || att.author_id === participant.id
                     );
-                    
-                    // Get real voting status from backend
                     const hasVoted = votingStatus[participant.id] === true;
-                    
+
                     return (
-                    <div key={participant.id} className="table-row">
-                      <div className="table-cell">
-                        {participant.name}
-                      </div>
-                      <div className="table-cell">{participant.email}</div>
-                      <div className="table-cell">
-                        <span className="badge badge-secondary">
-                          {participant.role}
-                        </span>
-                      </div>
-                      <div className="table-cell">
-                        {hasSubmittedFile ? (
-                          <span className="badge badge-success">✓ Submitted</span>
-                        ) : (
-                          <span className="badge badge-warning">⏳ Pending</span>
-                        )}
-                      </div>
-                      <div className="table-cell">
-                        {event.stage === 'voting' || event.stage === 'results' ? (
-                          hasVoted ? (
-                            <span className="badge badge-success">✓ Voted</span>
+                      <div key={participant.id} className="table-row">
+                        <div className="table-cell">{participant.name}</div>
+                        <div className="table-cell">{participant.email}</div>
+                        <div className="table-cell">
+                          {hasSubmittedFile
+                            ? <span className="badge badge-success">✓ Submitted</span>
+                            : <span className="badge badge-warning">⏳ Pending</span>
+                          }
+                        </div>
+                        <div className="table-cell">
+                          {event.stage === 'voting' || event.stage === 'results' ? (
+                            hasVoted
+                              ? <span className="badge badge-success">✓ Voted</span>
+                              : <span className="badge badge-warning">⏳ Not Voted</span>
                           ) : (
-                            <span className="badge badge-warning">⏳ Not Voted</span>
-                          )
-                        ) : (
-                          <span className="badge badge-secondary">N/A</span>
-                        )}
+                            <span className="badge badge-secondary">N/A</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="table-cell">
-                        Registered
-                      </div>
-                    </div>
                     );
                   })}
                 </div>

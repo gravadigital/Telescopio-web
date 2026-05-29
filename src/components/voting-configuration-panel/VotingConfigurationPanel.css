@@ -1,199 +1,224 @@
-.voting-config-panel {
-  background: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-top: 1rem;
+/* ── VotingConfigurationPanel ────────────────────────────────────────────── */
+
+.vcp-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  margin-top: var(--spacing-lg);
 }
 
-.voting-config-panel h3 {
-  margin-bottom: 1.5rem;
-  color: #2c3e50;
-  font-size: 1.5rem;
+/* Header ------------------------------------------------------------------ */
+
+.vcp-header {
+  margin-bottom: var(--spacing-xl);
 }
 
-.voting-config-panel .info-box {
-  background: #f8f9fa;
-  border-left: 4px solid #3498db;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  border-radius: 4px;
+.vcp-header h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 var(--spacing-sm) 0;
 }
 
-.voting-config-panel .info-box p {
-  margin: 0 0 0.5rem 0;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.voting-config-panel .info-box ul {
-  margin: 0.5rem 0 0 1.5rem;
-  padding: 0;
-}
-
-.voting-config-panel .info-box li {
-  margin: 0.3rem 0;
-  color: #34495e;
-}
-
-.voting-config-panel .form-group {
-  margin-bottom: 1.5rem;
-}
-
-.voting-config-panel .form-group label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #34495e;
-}
-
-.voting-config-panel .form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-}
-
-.voting-config-panel .form-group input:focus {
-  outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-}
-
-.voting-config-panel .form-group small {
-  display: block;
-  margin-top: 0.3rem;
-  color: #7f8c8d;
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
-
-.voting-config-panel .primary-btn {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 0.875rem 1.5rem;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  width: 100%;
-}
-
-.voting-config-panel .primary-btn:hover:not(:disabled) {
-  background: #2980b9;
-}
-
-.voting-config-panel .primary-btn:disabled {
-  background: #95a5a6;
-  cursor: not-allowed;
-}
-
-.voting-config-panel .message {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-}
-
-.voting-config-panel .error-message {
-  background: #fee;
-  border-left: 4px solid #e74c3c;
-  color: #c0392b;
-}
-
-.voting-config-panel .success-message {
-  background: #d4edda;
-  border-left: 4px solid #28a745;
-  color: #155724;
-}
-
-.voting-config-panel .algorithm-info {
-  margin-top: 2rem;
-  background: #e8f4f8;
-  border-left-color: #2980b9;
-}
-
-.voting-config-panel .algorithm-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #2c3e50;
-  font-size: 1rem;
-}
-
-.voting-config-panel .algorithm-info p {
+.vcp-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.6;
   margin: 0;
-  color: #34495e;
-  line-height: 1.6;
-  font-size: 0.9rem;
 }
 
-.voting-config-panel .confirmation-box {
-  background: #fff3cd;
-  border: 2px solid #ffc107;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin: 1.5rem 0;
-}
+/* Summary cards ----------------------------------------------------------- */
 
-.voting-config-panel .confirmation-box h4 {
-  margin: 0 0 1rem 0;
-  color: #856404;
-  font-size: 1.1rem;
-}
-
-.voting-config-panel .confirmation-box p {
-  margin: 0.5rem 0;
-  color: #856404;
-  line-height: 1.6;
-}
-
-.voting-config-panel .confirmation-box .warning-text {
-  background: #fff;
-  padding: 0.75rem;
-  border-left: 3px solid #dc3545;
-  margin: 1rem 0;
-  border-radius: 4px;
-}
-
-.voting-config-panel .confirmation-box .button-group {
+.vcp-summary {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  flex-wrap: wrap;
 }
 
-.voting-config-panel .confirmation-box .button-group button {
+.vcp-summary-card {
   flex: 1;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
+  min-width: 100px;
+  background: linear-gradient(135deg,
+    rgba(106, 90, 205, 0.15) 0%,
+    rgba(75, 74, 138, 0.1) 100%);
+  border: 1px solid rgba(106, 90, 205, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.vcp-summary-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.vcp-summary-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+}
+
+/* Warning ----------------------------------------------------------------- */
+
+.vcp-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 0.875rem;
+  color: #fcd34d;
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Form -------------------------------------------------------------------- */
+
+.vcp-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.vcp-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+}
+
+.vcp-field-row {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.vcp-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.vcp-input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.875rem;
   font-size: 1rem;
   font-weight: 600;
+  color: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.vcp-input:focus {
+  outline: none;
+  border-color: var(--color-primary-hover);
+  box-shadow: 0 0 0 3px rgba(106, 90, 205, 0.2);
+}
+
+.vcp-hint {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.55;
+}
+
+.vcp-hint strong {
+  color: #ffffff;
+}
+
+/* Advanced toggle --------------------------------------------------------- */
+
+.vcp-advanced-toggle {
+  background: none;
+  border: none;
+  color: var(--color-primary-hover);
+  font-size: 0.825rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  padding: 0;
+  text-align: left;
+  transition: color 0.2s;
 }
 
-.voting-config-panel .confirmation-box .secondary-btn {
-  background: #6c757d;
-  color: white;
+.vcp-advanced-toggle:hover {
+  color: #fff;
 }
 
-.voting-config-panel .confirmation-box .secondary-btn:hover:not(:disabled) {
-  background: #5a6268;
+.vcp-advanced {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
-@media (max-width: 768px) {
-  .voting-config-panel {
-    padding: 1.5rem;
-  }
+.vcp-advanced-note {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  line-height: 1.55;
+}
 
-  .voting-config-panel h3 {
-    font-size: 1.25rem;
-  }
+/* Error ------------------------------------------------------------------- */
 
-  .voting-config-panel .confirmation-box .button-group {
+.vcp-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 0.875rem;
+  color: #fca5a5;
+  line-height: 1.5;
+}
+
+/* Submit button ----------------------------------------------------------- */
+
+.vcp-submit {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.875rem var(--spacing-xl);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(106, 90, 205, 0.45);
+  letter-spacing: 0.01em;
+}
+
+.vcp-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-dark) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(106, 90, 205, 0.55);
+}
+
+.vcp-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive ------------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  .vcp-field-row {
     flex-direction: column;
+  }
+
+  .vcp-summary-card {
+    min-width: 80px;
   }
 }
