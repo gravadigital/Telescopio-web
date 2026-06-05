@@ -121,7 +121,7 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
       <div className="events-container">
         <div className="events-content">
           <div className="events-header">
-            <h1>Telescopio Events</h1>
+            <h1>Browse Events</h1>
 
             <div className="events-controls">
               <button
@@ -203,7 +203,7 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
               <div className="events-table">
                 <div className="table-header">
                   <div className="header-cell header-title">Event</div>
-                  <div className="header-cell header-date">Date</div>
+                  <div className="header-cell header-date">Created</div>
                   <div className="header-cell header-stage">Stage</div>
                   <div className="header-cell header-participants">Participants</div>
                   <div className="header-cell header-actions">Actions</div>
@@ -220,12 +220,12 @@ const Events: React.FC<EventsComponentProps> = ({ onViewEventDetail }) => {
                       </div>
                       
                       <div className="table-cell cell-date">
-                        <span className="cell-label">Date:</span>
+                        <span className="cell-label">Created:</span>
                         {(() => {
                           try {
-                            const date = new Date(event.date);
+                            const date = new Date(event.created_at || event.date);
                             return isNaN(date.getTime())
-                              ? 'TBD'
+                              ? '—'
                               : date.toLocaleDateString('en-US', {
                                   year: 'numeric',
                                   month: 'short',

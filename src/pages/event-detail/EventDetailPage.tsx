@@ -397,10 +397,9 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, onBack }) =>
           )}
           {currentStage === 'voting' && isOrganizer && votingConfigured && (
             <div className="voting-configured-info">
-              <h3>✅ Voting System Configured</h3>
-              <p>The distributed voting system has been configured successfully.</p>
-              <p>Participants can now rank their assigned attachments.</p>
-              <p>Once all participants have voted, advance to "Results" to see the final rankings.</p>
+              <h3>✅ Voting is underway</h3>
+              <p>Reviewers have been assigned their submissions and can now submit their rankings.</p>
+              <p>Once everyone has voted, advance to "Results" to publish the final ranking.</p>
             </div>
           )}
 

@@ -12,7 +12,6 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ eventId }) => {
   const [results, setResults] = useState<VotingResults | null>(null);
   const [statistics, setStatistics] = useState<VotingStatistics | null>(null);
   const [error, setError] = useState<string>('');
-  const [showAdjusted, setShowAdjusted] = useState<boolean>(false);
 
   useEffect(() => {
     loadResults();
@@ -23,169 +22,101 @@ const VotingResultsPanel: React.FC<VotingResultsPanelProps> = ({ eventId }) => {
     setLoading(true);
     setError('');
     try {
-      console.log('🔄 Loading voting results for event:', eventId);
       const [resultsData, statsData] = await Promise.all([
         DistributedVotingService.getDistributedResults(eventId),
-        DistributedVotingService.getVotingStatistics(eventId)
+        DistributedVotingService.getVotingStatistics(eventId),
       ]);
-      console.log('✅ Results loaded:', { resultsData, statsData });
       setResults(resultsData);
       setStatistics(statsData);
     } catch (err: any) {
-      const errorMessage = err?.message || 'Unknown error';
-      setError(`Failed to load voting results: ${errorMessage}`);
-      console.error('❌ Error loading results:', err);
+      setError(`Failed to load voting results: ${err?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="voting-results-panel">
-        <div className="loading">Loading results...</div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="voting-results-panel">
+      <div className="vrp-state">Loading results…</div>
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="voting-results-panel">
-        <div className="error-message">{error}</div>
-      </div>
-    );
-  }
+  if (error) return (
+    <div className="voting-results-panel">
+      <div className="vrp-error">{error}</div>
+    </div>
+  );
 
-  if (!results) {
-    return (
-      <div className="voting-results-panel">
-        <div className="no-results">No results available yet</div>
-      </div>
-    );
-  }
+  if (!results) return (
+    <div className="voting-results-panel">
+      <div className="vrp-state">No results available yet.</div>
+    </div>
+  );
 
-  const displayRanking = showAdjusted ? results.adjusted_ranking : results.global_ranking;
+  // Quality-adjusted ranking as the single unified result
+  const ranking = results.adjusted_ranking?.length
+    ? results.adjusted_ranking
+    : results.global_ranking;
+
+  const medals = ['🥇', '🥈', '🥉'];
 
   return (
     <div className="voting-results-panel">
-      <h2>🏆 Voting Results</h2>
+      <h2>🏆 Final Results</h2>
 
       {statistics && (
-        <div className="statistics-box">
-          <h3>📊 Statistics</h3>
-          <div className="stats-grid">
-            <div className="stat-item">
-              <span className="stat-label">Completion Rate</span>
-              <span className="stat-value">{(statistics.completion_rate * 100).toFixed(1)}%</span>
-              <span className="stat-help">Participants who completed voting</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Total Votes</span>
-              <span className="stat-value">{statistics.total_votes}</span>
-              <span className="stat-help">Total rankings submitted</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Average Quality</span>
-              <span className="stat-value">{(statistics.average_quality_score * 100).toFixed(1)}%</span>
-              <span className="stat-help">Evaluator consistency score</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">High Quality Evaluators</span>
-              <span className="stat-value">{statistics.participants_with_good_quality}</span>
-              <span className="stat-help">Evaluators with quality ≥ 60%</span>
-            </div>
+        <div className="vrp-stats">
+          <div className="vrp-stat">
+            <span className="vrp-stat-value">{(statistics.completion_rate * 100).toFixed(0)}%</span>
+            <span className="vrp-stat-label">Participation</span>
+          </div>
+          <div className="vrp-stat">
+            <span className="vrp-stat-value">{statistics.total_votes}</span>
+            <span className="vrp-stat-label">Rankings submitted</span>
           </div>
         </div>
       )}
 
-      <div className="ranking-controls">
-        <button
-          className={`toggle-btn ${!showAdjusted ? 'active' : ''}`}
-          onClick={() => setShowAdjusted(false)}
-        >
-          📊 Global Ranking
-        </button>
-        <button
-          className={`toggle-btn ${showAdjusted ? 'active' : ''}`}
-          onClick={() => setShowAdjusted(true)}
-        >
-          ⚖️ Quality-Adjusted Ranking
-        </button>
+      <div className="vrp-quality-note">
+        <span className="vrp-quality-icon">⚖️</span>
+        <p>
+          The ranking takes <strong>reviewer quality</strong> into account. Participants who
+          ranked consistently with the rest of the group carry more weight in the final result.
+          This makes the outcome fairer when some reviewers may have ranked carelessly or inconsistently.
+        </p>
       </div>
 
-      <div className="ranking-info">
-        {!showAdjusted ? (
-          <p><strong>Global Ranking:</strong> Pure mathematical ranking using Modified Borda Count - all votes weighted equally</p>
-        ) : (
-          <p><strong>Quality-Adjusted Ranking:</strong> Rankings adjusted based on evaluator quality - higher quality evaluators have more influence</p>
-        )}
-      </div>
-
-      <div className="ranking-table-container">
-        <table className="ranking-table">
+      <div className="vrp-table-wrap">
+        <table className="vrp-table">
           <thead>
             <tr>
-              <th>Rank</th>
-              <th>File / Author</th>
-              <th>MBC Score</th>
-              <th>Votes</th>
-              <th>Avg Rank</th>
-              {showAdjusted && <th>Original Rank</th>}
+              <th className="vrp-th-rank">Rank</th>
+              <th className="vrp-th-file">File / Author</th>
+              <th className="vrp-th-score">Score</th>
             </tr>
           </thead>
           <tbody>
-            {displayRanking.map((result, index) => (
+            {ranking.map((result, index) => (
               <tr
                 key={result.attachment_id}
-                className={index < 3 ? `top-${index + 1}` : ''}
+                className={index < 3 ? `vrp-top vrp-top-${index + 1}` : ''}
               >
-                <td className="rank-cell">
-                  {showAdjusted ? result.adjusted_rank : result.global_rank}
-                  {index === 0 && ' 🥇'}
-                  {index === 1 && ' 🥈'}
-                  {index === 2 && ' 🥉'}
+                <td className="vrp-rank">
+                  {index < 3 ? medals[index] : index + 1}
                 </td>
-                <td className="filename-cell">
-                  <div className="file-info">
-                    <div className="filename">{result.filename}</div>
-                    {result.participant_name && (
-                      <div className="author">by {result.participant_name}</div>
-                    )}
-                  </div>
+                <td className="vrp-file">
+                  <span className="vrp-filename">{result.filename}</span>
+                  {result.participant_name && (
+                    <span className="vrp-author">by {result.participant_name}</span>
+                  )}
                 </td>
-                <td>{result.mbc_score.toFixed(4)}</td>
-                <td>{result.vote_count}</td>
-                <td>{result.average_rank.toFixed(2)}</td>
-                {showAdjusted && <td>{result.global_rank}</td>}
+                <td className="vrp-score">{result.mbc_score.toFixed(3)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="info-box">
-        <h4>ℹ️ About the Results</h4>
-        <p>
-          <strong>MBC Score:</strong> Modified Borda Count score (0-1 scale).
-          Higher scores indicate better rankings. Each evaluator ranks the files they reviewed,
-          and the MBC algorithm combines these rankings mathematically.
-        </p>
-        <p>
-          <strong>Votes:</strong> Number of times this file was evaluated by participants.
-        </p>
-        <p>
-          <strong>Avg Rank:</strong> Average position where evaluators placed this file (lower is better).
-        </p>
-        <p>
-          <strong>Global Ranking:</strong> Pure mathematical ranking based on the MBC algorithm,
-          treating all evaluators equally.
-        </p>
-        <p>
-          <strong>Adjusted Ranking:</strong> Ranking adjusted based on evaluator quality scores.
-          High-quality evaluators (Q ≥ {results.global_ranking[0] ? '0.6' : 'threshold'}) receive
-          rank bonuses for their submissions, while low-quality evaluators receive penalties.
-        </p>
-      </div>
     </div>
   );
 };

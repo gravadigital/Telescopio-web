@@ -17,7 +17,6 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const maxPossibleM = totalAttachments >= totalParticipants
     ? totalAttachments - 1
@@ -127,16 +126,7 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
           </small>
         </div>
 
-        <button
-          type="button"
-          className="vcp-advanced-toggle"
-          onClick={() => setShowAdvanced(v => !v)}
-        >
-          {showAdvanced ? '▲ Hide advanced settings' : '▼ Advanced settings'}
-        </button>
-
-        {showAdvanced && (
-          <div className="vcp-advanced">
+        <div className="vcp-advanced">
             <p className="vcp-advanced-note">
               These settings control how reviewer quality affects the final ranking.
               The defaults work well for most events.
@@ -220,7 +210,6 @@ const VotingConfigurationPanel: React.FC<VotingConfigurationPanelProps> = ({
               </small>
             </div>
           </div>
-        )}
 
         {error && <div className="vcp-error">{error}</div>}
 

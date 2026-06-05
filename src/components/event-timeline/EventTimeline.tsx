@@ -33,7 +33,7 @@ const STAGES: StageConfig[] = [
     label: 'Voting',
     icon: '🗳',
     summary: 'Peer review & ranking',
-    detail: 'Each registered participant receives a set of submissions to review and rank. The system uses a distributed Modified Borda Count to aggregate scores fairly.',
+    detail: 'Each participant receives a selected set of submissions to review — not all of them, just a manageable group. You rank them from best to worst based on your honest assessment. The system then combines everyone\'s rankings into a final score. Reviewers who rank consistently with the rest of the group have more influence on the result. If someone ranks randomly or carelessly, their vote carries less weight automatically — so the final ranking stays fair even if not everyone takes it seriously.',
     nextHint: 'Once all reviewers have voted, the organizer will publish the final results.',
   },
   {
